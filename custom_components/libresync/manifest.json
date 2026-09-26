@@ -8,7 +8,7 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/drsound/ha-libresync/issues",
   "loggers": ["aiolibresync"],
-  "requirements": ["aiolibresync==0.5.0"],
+  "requirements": ["aiolibresync==0.5.1"],
   "ssdp": [
     {
       "deviceType": "urn:schemas-upnp-org:device:MediaRenderer:1",

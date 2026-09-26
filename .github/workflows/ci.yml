@@ -27,7 +27,7 @@ jobs:
       # The dependencies directly, not `pip install -e .`: an editable install
       # of this project breaks Home Assistant's custom-component loader. The
       # library pin must match manifest.json.
-      - run: pip install "aiolibresync==0.5.0" pytest-homeassistant-custom-component mypy
+      - run: pip install "aiolibresync==0.5.1" pytest-homeassistant-custom-component mypy
       - run: pytest -q
       - run: mypy
 
