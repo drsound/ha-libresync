@@ -1,0 +1,23 @@
+{
+  "domain": "libresync",
+  "name": "LibreSync",
+  "codeowners": ["@drsound"],
+  "config_flow": true,
+  "documentation": "https://github.com/drsound/ha-libresync",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/drsound/ha-libresync/issues",
+  "loggers": ["aiolibresync"],
+  "requirements": ["aiolibresync==0.5.0"],
+  "ssdp": [
+    {
+      "deviceType": "urn:schemas-upnp-org:device:MediaRenderer:1",
+      "manufacturer": "LibreWireless"
+    },
+    {
+      "deviceType": "urn:schemas-upnp-org:device:MediaRenderer:1",
+      "modelDescription": "LibreSyncDMR"
+    }
+  ],
+  "version": "0.1.0"
+}

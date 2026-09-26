@@ -1,0 +1,69 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a LibreSync hub",
+        "description": "Enter the hub's address on your network.",
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "The IP address or host name of the hub, for example 192.168.1.50. Your router's list of connected devices shows it."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Add {name}?",
+        "description": "Home Assistant found this LibreSync hub on your network."
+      }
+    },
+    "error": {
+      "cannot_connect": "Nothing answered at that address. Check that the hub is powered and on the same network.",
+      "no_identity": "This hub is reachable but is not publishing its identity, so Home Assistant cannot tell it apart from another one. Unplug it from the mains, plug it back in, wait a minute, and try again."
+    },
+    "abort": {
+      "already_configured": "This hub is already set up.",
+      "already_in_progress": "This hub is already being set up.",
+      "cannot_connect": "The device that was found did not answer on the control port, so it is not a LibreSync hub."
+    }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Power"
+      },
+      "room_correction": {
+        "name": "Room correction"
+      },
+      "manual_eq": {
+        "name": "Manual EQ"
+      }
+    },
+    "select": {
+      "eq_preset": {
+        "name": "EQ preset",
+        "state": {
+          "editor": "Being edited in the app"
+        }
+      }
+    },
+    "binary_sensor": {
+      "audio": {
+        "name": "Audio"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "The hub at {host} did not answer on ports 50006 and 7777. Home Assistant will keep trying."
+    },
+    "invalid_source": {
+      "message": "The hub has no source named {source}."
+    },
+    "not_confirmed": {
+      "message": "The hub did not confirm the command in time, so it may not have taken effect."
+    },
+    "not_connected": {
+      "message": "The hub is not connected, so the command was not sent. Home Assistant is reconnecting."
+    }
+  }
+}

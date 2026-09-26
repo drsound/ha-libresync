@@ -1,0 +1,42 @@
+[project]
+name = "ha-libresync"
+version = "0.1.0"
+description = "Home Assistant integration for Libre Wireless LibreSync audio devices"
+requires-python = ">=3.13"
+
+# Nothing here is built or installed as a package: Home Assistant loads
+# `custom_components/libresync/` from a path. This file holds the tool
+# configuration and the development dependencies, and nothing else.
+#
+# **Do not `pip install -e .` this project.** The editable install writes a
+# path-hook finder into site-packages, and Home Assistant's custom-component
+# loader walks it and dies on `FileNotFoundError:
+# __editable__.ha_libresync-0.1.0.finder.__path_hook__`. Install the dev
+# dependencies directly instead; `pythonpath` below is what makes
+# `custom_components` importable, and it is all that was ever needed.
+
+[project.optional-dependencies]
+dev = [
+    # The same pin as manifest.json, so the suite runs against what ships.
+    "aiolibresync==0.5.0",
+    "pytest-homeassistant-custom-component",
+    "ruff",
+    "mypy",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "RUF"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["custom_components/libresync"]

@@ -1,0 +1,69 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Aggiungi un hub LibreSync",
+        "description": "Inserisci l'indirizzo dell'hub sulla tua rete.",
+        "data": {
+          "host": "Indirizzo"
+        },
+        "data_description": {
+          "host": "L'indirizzo IP o il nome host dell'hub, per esempio 192.168.1.50. Lo trovi nell'elenco dei dispositivi connessi del router."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Aggiungere {name}?",
+        "description": "Home Assistant ha trovato questo hub LibreSync sulla tua rete."
+      }
+    },
+    "error": {
+      "cannot_connect": "Nessuna risposta a quell'indirizzo. Verifica che l'hub sia acceso e sulla stessa rete.",
+      "no_identity": "L'hub risponde ma non sta pubblicando la propria identità, quindi Home Assistant non può distinguerlo da un altro. Staccalo dalla presa di corrente, riattaccalo, aspetta un minuto e riprova."
+    },
+    "abort": {
+      "already_configured": "Questo hub è già configurato.",
+      "already_in_progress": "Questo hub è già in fase di configurazione.",
+      "cannot_connect": "Il dispositivo trovato non ha risposto sulla porta di controllo, quindi non è un hub LibreSync."
+    }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Accensione"
+      },
+      "room_correction": {
+        "name": "Correzione ambientale"
+      },
+      "manual_eq": {
+        "name": "EQ manuale"
+      }
+    },
+    "select": {
+      "eq_preset": {
+        "name": "Preset EQ",
+        "state": {
+          "editor": "In modifica nell'app"
+        }
+      }
+    },
+    "binary_sensor": {
+      "audio": {
+        "name": "Audio"
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "L'hub all'indirizzo {host} non ha risposto sulle porte 50006 e 7777. Home Assistant continuerà a riprovare."
+    },
+    "invalid_source": {
+      "message": "L'hub non ha una sorgente chiamata {source}."
+    },
+    "not_confirmed": {
+      "message": "L'hub non ha confermato il comando in tempo, quindi potrebbe non essere stato eseguito."
+    },
+    "not_connected": {
+      "message": "L'hub non è connesso, quindi il comando non è stato inviato. Home Assistant sta ricollegandosi."
+    }
+  }
+}
