@@ -261,3 +261,25 @@ async def test_a_position_that_moves_while_paused_is_written(
     push(mock_client, FULL_STATE.evolve(audio_state=PlayState.PAUSED, position_ms=11000))
     await hass.async_block_till_done()
     assert hass.states.get(ENTITY).attributes["media_position"] == 11
+
+
+async def test_resuming_at_the_same_position_does_not_reuse_the_time_of_the_pause(
+    hass, config_entry, mock_client, freezer
+):
+    """The frontend extrapolates from the stamp while playing, so a stamp kept from
+    the pause would jump the position forward by the whole paused time."""
+    await setup(hass, config_entry, mock_client)
+    playing = FULL_STATE.evolve(
+        play_state=PlayState.PLAYING, audio_state=PlayState.PLAYING, position_ms=10000
+    )
+    paused = playing.evolve(play_state=PlayState.PAUSED, audio_state=PlayState.PAUSED)
+    push(mock_client, paused)
+    await hass.async_block_till_done()
+    paused_at = hass.states.get(ENTITY).attributes["media_position_updated_at"]
+
+    freezer.tick(timedelta(minutes=5))
+    push(mock_client, playing)
+    await hass.async_block_till_done()
+    attributes = hass.states.get(ENTITY).attributes
+    assert attributes["media_position"] == 10
+    assert attributes["media_position_updated_at"] - paused_at >= timedelta(minutes=5)

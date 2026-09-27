@@ -18,7 +18,7 @@
     },
     "error": {
       "cannot_connect": "Nothing answered at that address. Check that the hub is powered and on the same network.",
-      "no_identity": "This hub is reachable but is not publishing its identity, so Home Assistant cannot tell it apart from another one. Unplug it from the mains, plug it back in, wait a minute, and try again."
+      "no_identity": "This hub is reachable, but its UPnP service on port 38400 does not answer, so Home Assistant cannot identify it. Check that nothing blocks that port, then unplug the hub from the mains, plug it back in, wait a minute, and try again."
     },
     "abort": {
       "already_configured": "This hub is already set up.",

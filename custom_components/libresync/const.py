@@ -6,12 +6,6 @@ from homeassistant.const import Platform
 
 DOMAIN: Final = "libresync"
 
-#: The two identifiers a hub can have, both kept in the entry's data whenever
-#: they are known. The `unique_id` is whichever was preferred when the entry was
-#: created, and never changes; recognising a hub checks all three.
-CONF_SERIAL: Final = "serial"
-CONF_UDN: Final = "udn"
-
 PLATFORMS: Final = [
     Platform.MEDIA_PLAYER,
     Platform.SWITCH,

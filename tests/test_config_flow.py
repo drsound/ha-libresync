@@ -6,24 +6,15 @@ from dataclasses import replace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.ssdp import SsdpServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.libresync.const import CONF_SERIAL, CONF_UDN, DOMAIN
+from custom_components.libresync.const import DOMAIN
 
-from .conftest import FOUND, FOUND_WITHOUT_UDN, HOST, SERIAL, UDN
-
-
-@pytest.fixture(autouse=True)
-def read_serial():
-    """The serial read from box 231. None by default: a unit that has none."""
-    with patch(
-        "custom_components.libresync.config_flow.async_read_serial",
-        AsyncMock(return_value=None),
-    ) as mock:
-        yield mock
+from .conftest import FOUND, FOUND_WITHOUT_UDN, HOST, UDN
 
 
 @pytest.fixture(autouse=True)
@@ -67,7 +58,7 @@ async def test_manual_entry_creates_an_entry_keyed_on_the_udn(hass):
         )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["result"].unique_id == UDN
-    assert result["data"] == {CONF_HOST: "192.168.10.20", CONF_UDN: UDN}
+    assert result["data"] == {CONF_HOST: "192.168.10.20"}
 
 
 async def test_a_hub_that_does_not_answer_is_reported_not_created(hass):
@@ -80,16 +71,22 @@ async def test_a_hub_that_does_not_answer_is_reported_not_created(hass):
     assert result["errors"] == {"base": "cannot_connect"}
 
 
-async def test_a_hub_with_neither_serial_nor_udn_is_refused_with_advice(hass):
+@pytest.mark.parametrize(
+    "found",
+    [
+        pytest.param(FOUND_WITHOUT_UDN, id="no_udn"),
+        # A description whose UDN element holds only whitespace.
+        pytest.param(replace(FOUND, udn=""), id="empty_udn"),
+    ],
+)
+async def test_a_hub_without_a_udn_is_refused_with_advice(hass, found):
     """`LibreDmr` serves the UDN and has been seen dead on a healthy hub.
 
-    The device is fully controllable in that state, so this is a real case and
-    not a hypothetical. With no factory serial either, it is refused: an entry
-    with no `unique_id` can never be told apart from a second hub, and a mains
-    cycle is measured to bring the daemon back. The error text carries that.
+    The device is controllable in that state, but nothing identifies it, so it
+    is refused. A mains cycle brings the daemon back, and the error says so.
     """
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
-    with _probe(FOUND_WITHOUT_UDN):
+    with _probe(found):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {CONF_HOST: "192.168.10.20"}
         )
@@ -98,7 +95,9 @@ async def test_a_hub_with_neither_serial_nor_udn_is_refused_with_advice(hass):
 
 
 async def test_the_same_hub_cannot_be_added_twice(hass, config_entry):
+    """Added again at a new address, the entry follows it."""
     config_entry.add_to_hass(hass)
+    hass.config_entries.async_update_entry(config_entry, data={CONF_HOST: "192.168.10.99"})
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     with _probe(FOUND):
         result = await hass.config_entries.flow.async_configure(
@@ -106,6 +105,20 @@ async def test_the_same_hub_cannot_be_added_twice(hass, config_entry):
         )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
+    assert config_entry.data[CONF_HOST] == "192.168.10.20"
+
+
+async def test_an_ignored_hub_can_still_be_added_by_hand(hass):
+    MockConfigEntry(domain=DOMAIN, source="ignore", unique_id=UDN).add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    with _probe(FOUND):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: "192.168.10.20"}
+        )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert [
+        (entry.source, entry.unique_id) for entry in hass.config_entries.async_entries(DOMAIN)
+    ] == [("user", UDN)]
 
 
 SSDP_INFO = SsdpServiceInfo(
@@ -127,7 +140,7 @@ async def test_discovery_asks_before_it_adds(hass):
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["result"].unique_id == UDN
-    assert result["data"] == {CONF_HOST: HOST, CONF_UDN: UDN}
+    assert result["data"] == {CONF_HOST: HOST}
 
 
 async def test_discovery_of_a_hub_already_added_follows_its_new_address(hass, config_entry):
@@ -191,109 +204,36 @@ async def test_discovery_whose_location_names_no_host_is_dropped(hass):
     assert result["reason"] == "cannot_connect"
 
 
-async def test_a_hub_with_a_serial_is_keyed_on_it_and_keeps_both(hass, read_serial):
-    """The serial is preferred: it does not depend on the UPnP daemon."""
-    read_serial.return_value = SERIAL
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
-    with _probe(FOUND):
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {CONF_HOST: HOST}
-        )
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["result"].unique_id == SERIAL
-    assert result["data"] == {CONF_HOST: HOST, CONF_SERIAL: SERIAL, CONF_UDN: UDN}
-
-
-async def test_a_hub_whose_upnp_daemon_is_down_is_accepted_by_its_serial(hass, read_serial):
-    """What the serial buys: the case the UDN alone had to refuse."""
-    read_serial.return_value = SERIAL
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
-    with _probe(FOUND_WITHOUT_UDN):
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {CONF_HOST: HOST}
-        )
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["result"].unique_id == SERIAL
-    assert result["data"] == {CONF_HOST: HOST, CONF_SERIAL: SERIAL}
-
-
-async def test_discovery_recognises_a_serial_keyed_hub_by_its_udn_without_touching_it(
-    hass, read_serial
+@pytest.mark.parametrize(
+    ("state", "reloaded"),
+    [(ConfigEntryState.SETUP_RETRY, True), (ConfigEntryState.LOADED, False)],
+)
+async def test_discovery_of_a_hub_waiting_to_retry_retries_it_now(
+    hass, config_entry, state, reloaded
 ):
-    """Discovery sees only the UDN. The entry's data carries it, so no serial read is needed."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id=SERIAL,
-        minor_version=2,
-        data={CONF_HOST: HOST, CONF_SERIAL: SERIAL, CONF_UDN: UDN},
-    )
-    entry.add_to_hass(hass)
-    moved = SsdpServiceInfo(
-        ssdp_usn=SSDP_INFO.ssdp_usn,
-        ssdp_st=SSDP_INFO.ssdp_st,
-        ssdp_location="http://192.168.10.99:38400/description.xml",
-        upnp=SSDP_INFO.upnp,
-    )
-    with _probe(FOUND) as probe:
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": "ssdp"}, data=moved
-        )
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
-    assert entry.data[CONF_HOST] == "192.168.10.99"
-    probe.assert_not_awaited()
-    read_serial.assert_not_awaited()
-
-
-async def test_a_udn_keyed_hub_added_again_by_hand_is_recognised_before_its_serial_is_read(
-    hass, read_serial, config_entry
-):
-    """Reading the serial would open a second session next to the running client's.
-
-    The running client records the serial in the entry instead.
-    """
+    """Found again at the same address: a setup waiting to retry is retried now."""
     config_entry.add_to_hass(hass)
-    read_serial.return_value = SERIAL
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
-    with _probe(FOUND):
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {CONF_HOST: HOST}
-        )
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
-    assert config_entry.unique_id == UDN  # never re-keyed
-    read_serial.assert_not_awaited()
-
-
-async def test_discovery_of_a_new_hub_with_a_serial_is_keyed_on_the_serial(hass, read_serial):
-    read_serial.return_value = SERIAL
-    with _probe(FOUND):
+    config_entry.mock_state(hass, state)
+    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": "ssdp"}, data=SSDP_INFO
         )
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["result"].unique_id == SERIAL
-    assert result["data"] == {CONF_HOST: HOST, CONF_SERIAL: SERIAL, CONF_UDN: UDN}
+    assert result["reason"] == "already_configured"
+    assert reload.called is reloaded
 
 
-async def test_discovery_finds_by_serial_a_hub_whose_entry_lacks_the_udn(hass, read_serial):
-    """Added while its UPnP daemon was down, so the entry never learned the UDN."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id=SERIAL,
-        minor_version=2,
-        data={CONF_HOST: HOST, CONF_SERIAL: SERIAL},
-    )
-    entry.add_to_hass(hass)
-    read_serial.return_value = SERIAL
+async def test_a_pending_discovery_goes_away_when_the_hub_is_added_by_hand(hass):
     with _probe(FOUND):
-        result = await hass.config_entries.flow.async_init(
+        discovered = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": "ssdp"}, data=SSDP_INFO
         )
-    assert result["type"] is FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
-    assert entry.data[CONF_UDN] == UDN
+        assert discovered["type"] is FlowResultType.FORM
+        manual = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        manual = await hass.config_entries.flow.async_configure(
+            manual["flow_id"], {CONF_HOST: HOST}
+        )
+    assert manual["type"] is FlowResultType.CREATE_ENTRY
+    assert hass.config_entries.flow.async_progress() == []
 
 
 async def test_a_second_discovery_of_a_hub_being_set_up_is_dropped_unprobed(hass):
@@ -312,7 +252,7 @@ async def test_a_second_discovery_of_a_hub_being_set_up_is_dropped_unprobed(hass
     probe.assert_awaited_once()
 
 
-async def test_an_ignored_hub_is_dropped_before_anything_is_sent_to_it(hass, read_serial):
+async def test_an_ignored_hub_is_dropped_before_anything_is_sent_to_it(hass):
     """ "Ignore" records the UDN, which discovery sees before contacting the hub."""
     MockConfigEntry(domain=DOMAIN, source="ignore", unique_id=UDN).add_to_hass(hass)
     with _probe(FOUND) as probe:
@@ -322,4 +262,3 @@ async def test_an_ignored_hub_is_dropped_before_anything_is_sent_to_it(hass, rea
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
     probe.assert_not_awaited()
-    read_serial.assert_not_awaited()

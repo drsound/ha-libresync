@@ -30,7 +30,7 @@ Home Assistant installs the one library this needs, [`aiolibresync`](https://pyp
 
 **Mute is simulated.** The hub has no mute you can set: the command exists, is accepted, changes the value that reads back, and leaves the audio alone. So muting here saves your volume, sets it to zero, and puts it back afterwards. If something *else* mutes the hub — the remote, the vendor's app — the integration will show it as muted and will not be able to unmute it, and it says so in the log.
 
-**A hub that will not say who it is cannot be added.** A hub is identified by its factory serial, or failing that by the identity its UPnP daemon publishes. That daemon occasionally dies on an otherwise healthy hub. On a unit that also has no valid factory serial, Home Assistant could not tell your hub apart from a second one, so the integration refuses rather than create an entry it could never identify again. Unplug the hub from the mains, plug it back in, and it will be there. On the Platin Stereo Hub the serial is always there, so this should not happen.
+**A hub that will not say who it is cannot be added.** A hub is identified by the identity its UPnP service publishes on port 38400. Adding a hub by address reads it once, and discovery sees it on its own. If that service does not answer, check that nothing blocks the port, then unplug the hub from the mains and plug it back in: the service comes back with it. On the Platin Stereo Hub it has been seen to stop once, on an otherwise healthy hub.
 
 ## What it does not do
 

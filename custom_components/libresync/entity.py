@@ -65,12 +65,12 @@ class LibreSyncEntity(Entity):
 
     @property
     def device_info(self) -> DeviceInfo:
+        # No model or serial here: setup keeps them on the device as they
+        # arrive, and a None here, before they have, would overwrite them.
         return DeviceInfo(
             identifiers={(DOMAIN, self._unique_id_base)},
             manufacturer=MANUFACTURER,
-            model=self.snapshot.model,
             name=DEFAULT_NAME,
-            serial_number=self.snapshot.serial,
         )
 
     @property

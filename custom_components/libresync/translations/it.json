@@ -18,7 +18,7 @@
     },
     "error": {
       "cannot_connect": "Nessuna risposta a quell'indirizzo. Verifica che l'hub sia acceso e sulla stessa rete.",
-      "no_identity": "L'hub risponde ma non sta pubblicando la propria identità, quindi Home Assistant non può distinguerlo da un altro. Staccalo dalla presa di corrente, riattaccalo, aspetta un minuto e riprova."
+      "no_identity": "L'hub risponde, ma il suo servizio UPnP sulla porta 38400 no, quindi Home Assistant non può identificarlo. Verifica che niente blocchi quella porta, poi scollega l'hub dalla corrente, ricollegalo, aspetta un minuto e riprova."
     },
     "abort": {
       "already_configured": "Questo hub è già configurato.",

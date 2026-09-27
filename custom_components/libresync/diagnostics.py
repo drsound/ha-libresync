@@ -16,9 +16,8 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant
 
 from . import LibreSyncConfigEntry
-from .const import CONF_SERIAL
 
-TO_REDACT = {CONF_HOST, CONF_SERIAL}
+TO_REDACT = {CONF_HOST}
 
 
 async def async_get_config_entry_diagnostics(
@@ -31,13 +30,8 @@ async def async_get_config_entry_diagnostics(
             # The UDN is not redacted, deliberately. It is a runtime-generated
             # UUID rather than a serial number, it identifies which unit a
             # report is about, and without it two hubs in one report cannot be
-            # told apart. The factory serial is redacted, and so is the
-            # unique_id when that is what it holds.
-            "unique_id": (
-                "**REDACTED**"
-                if entry.unique_id and entry.unique_id == entry.data.get(CONF_SERIAL)
-                else entry.unique_id
-            ),
+            # told apart. The factory serial is redacted by the library.
+            "unique_id": entry.unique_id,
         },
         "client": entry.runtime_data.diagnostics(),
     }

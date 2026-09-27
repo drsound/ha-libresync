@@ -262,8 +262,12 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
             return
         if self._muted_volume is not None and state.volume not in (0, None):
             self._muted_volume = None
-        # A write for another reason keeps the time the position was read.
-        if state.position_ms != self._written.position_ms:
+        # A write for another reason keeps the time the position was read,
+        # unless playback started or stopped: the frontend extrapolates from
+        # that time only while playing.
+        if state.position_ms != self._written.position_ms or (
+            state.playback is PlayState.PLAYING
+        ) != (self._written.playback is PlayState.PLAYING):
             self._take_position(state)
         self._written = state
         super()._handle_state(state)

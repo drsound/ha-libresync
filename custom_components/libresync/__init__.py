@@ -9,6 +9,7 @@ safety net rather than the mechanism.
 """
 
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from aiolibresync import DeviceState, LibreSyncClient, NotConnectedError
@@ -17,10 +18,15 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
-from .const import CONF_SERIAL, CONF_UDN, CONNECT_TIMEOUT, DOMAIN, PLATFORMS
+from .const import CONNECT_TIMEOUT, DEFAULT_NAME, DOMAIN, MANUFACTURER, PLATFORMS
 
 _LOGGER = logging.getLogger(__name__)
+
+# Entry data keys of minor version 2, read only by the migration.
+_LEGACY_SERIAL = "serial"
+_LEGACY_UDN = "udn"
 
 type LibreSyncConfigEntry = ConfigEntry[LibreSyncClient]
 
@@ -50,46 +56,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     entry.async_on_unload(client.async_disconnect)
     entry.runtime_data = client
 
+    # Serial and model answer a moment after the ports come up, and Home
+    # Assistant reads `device_info` only when an entity is added. So the device
+    # is created here, and kept current from the pushed state, before and after
+    # the entities register.
+    assert entry.unique_id is not None  # the config flow refuses an entry without one
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.unique_id)},
+        manufacturer=MANUFACTURER,
+        name=DEFAULT_NAME,
+    )
+    update_device = _device_updater(hass, device.id)
+    entry.async_on_unload(client.subscribe(update_device))
+    update_device(client.state)
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
+
+
+def _device_updater(hass: HomeAssistant, device_id: str) -> Callable[[DeviceState], None]:
+    """Keep the model and the serial on the device card current."""
     seen: tuple[str | None, str | None] | None = None
 
     @callback
-    def record_identity(state: DeviceState) -> None:
-        """Keep the factory serial in the entry, and the device card current.
-
-        The `unique_id` does not change. The serial is recorded so that a later
-        path which sees only the serial still recognises this hub, including an
-        entry created by UDN before the serial was read at all.
-
-        Serial and model both answer a moment after the ports come up, and Home
-        Assistant reads `device_info` only when an entity is added, so the
-        device registry is updated here when either arrives.
-        """
+    def update(state: DeviceState) -> None:
         nonlocal seen
         # Called on every push, including the position once a second.
         if (state.serial, state.model) == seen:
-            return
-        known = entry.data.get(CONF_SERIAL)
-        if state.serial and known and state.serial != known:
-            # Another hub answers at this address, which DHCP can do. Adopting
-            # its serial would point discovery of either hub at this entry.
-            _LOGGER.warning(
-                "The hub at %s reports a different serial from the one it was "
-                "added with, so its identity is not recorded",
-                entry.data[CONF_HOST],
-            )
-            seen = (state.serial, state.model)
-            return
-        if state.serial and not known:
-            hass.config_entries.async_update_entry(
-                entry, data={**entry.data, CONF_SERIAL: state.serial}
-            )
-        registry = dr.async_get(hass)
-        # One device per entry. Looked up by entry rather than by identifier,
-        # which Home Assistant no longer guarantees unique across entries.
-        devices = dr.async_entries_for_config_entry(registry, entry.entry_id)
-        if not devices:
-            # Before the platforms have created it. Not marked as seen, so the
-            # next push tries again.
             return
         seen = (state.serial, state.model)
         changes: dict[str, Any] = {}
@@ -98,30 +92,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
         if state.model:
             changes["model"] = state.model
         if changes:
-            registry.async_update_device(devices[0].id, **changes)
+            dr.async_get(hass).async_update_device(device_id, **changes)
 
-    entry.async_on_unload(client.subscribe(record_identity))
-    record_identity(client.state)
-
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    return True
+    return update
 
 
 async def async_migrate_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) -> bool:
-    """1.1 -> 1.2: record the identifier the entry was keyed on in its data.
+    """Bring an entry to 1.3: keyed on the UDN, with only the host in its data.
 
-    Entries from 1.1 were keyed on the UDN and stored only the host. Recording
-    the UDN lets discovery recognise the hub by it even when the entry is later
-    known by its serial too. Nothing is read from the network here.
+    1.1 was keyed on the UDN already. 1.2 was keyed on the factory serial when
+    the hub had one, and kept the serial and the UDN in its data: such an entry
+    is re-keyed on its recorded UDN, together with its device and its entities,
+    so entity ids and history survive. One with no UDN recorded cannot be
+    re-keyed without asking the network, and is left for the user to add again.
+    Nothing is read from the network here.
     """
     if entry.version > 1:
         return False
-    if entry.minor_version < 2:
-        data = dict(entry.data)
-        if entry.unique_id and CONF_UDN not in data and CONF_SERIAL not in data:
-            data[CONF_UDN] = entry.unique_id
-        hass.config_entries.async_update_entry(entry, data=data, minor_version=2)
+    if entry.minor_version < 3:
+        unique_id = entry.unique_id
+        serial = entry.data.get(_LEGACY_SERIAL)
+        if unique_id is not None and unique_id == serial:
+            udn = entry.data.get(_LEGACY_UDN)
+            if not udn:
+                _LOGGER.error(
+                    "The hub at %s was added by its serial and its UPnP identity was "
+                    "never recorded. Remove it and add it again",
+                    entry.data[CONF_HOST],
+                )
+                return False
+            await _async_rekey(hass, entry, unique_id, udn)
+            unique_id = udn
+        hass.config_entries.async_update_entry(
+            entry,
+            unique_id=unique_id,
+            data={CONF_HOST: entry.data[CONF_HOST]},
+            minor_version=3,
+        )
     return True
+
+
+async def _async_rekey(
+    hass: HomeAssistant, entry: LibreSyncConfigEntry, old: str, new: str
+) -> None:
+    """Move the entry's device and entities from one unique ID base to another."""
+    device_registry = dr.async_get(hass)
+    if device := device_registry.async_get_device(identifiers={(DOMAIN, old)}):
+        device_registry.async_update_device(device.id, new_identifiers={(DOMAIN, new)})
+
+    @callback
+    def migrate(entity: er.RegistryEntry) -> dict[str, Any] | None:
+        if not entity.unique_id.startswith(old):
+            return None
+        return {"new_unique_id": new + entity.unique_id[len(old) :]}
+
+    await er.async_migrate_entries(hass, entry.entry_id, migrate)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) -> bool:
