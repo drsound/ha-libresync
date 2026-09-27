@@ -20,7 +20,9 @@ It is **push-driven**. The hub announces volume, source, transport and metadata 
 
 ## Installing
 
-Through HACS: add this repository as a custom repository of type *Integration*, install it, and restart Home Assistant. Your hub should appear by itself under **Settings → Devices & Services**; if it does not, add it with **Add integration → LibreSync** and type its address.
+[![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=drsound&repository=ha-libresync&category=integration)
+
+Through HACS: the button above adds this repository to HACS for you; otherwise add it by hand as a custom repository of type *Integration*. Install it, and restart Home Assistant. Your hub should appear by itself under **Settings → Devices & Services**; if it does not, add it with **Add integration → LibreSync** and type its address.
 
 Home Assistant installs the one library this needs, [`aiolibresync`](https://pypi.org/project/aiolibresync/), from PyPI by itself.
 
@@ -35,6 +37,16 @@ Home Assistant installs the one library this needs, [`aiolibresync`](https://pyp
 ## What it does not do
 
 Seeking, media browsing, speaker grouping and multiroom. Defining EQ filters — build your presets in the vendor's app and select them here. Running the room calibration.
+
+## Tested hardware
+
+| Device | Firmware | Status |
+| --- | --- | --- |
+| Platin Stereo Hub | 1.52 | everything above, measured |
+
+That is the whole list so far. The same hub is sold as the System Audio, Buchardt and Econik Stereo Hubs and the Triangle Compact Stereo Hub, Mesanovic bundles Platin's with its monitors, and Platin and others make HT and Surround versions. The platform probably ships under other names too. They should work, but nobody has checked yet.
+
+**If you own one of them, please try it** and [open a device report](https://github.com/drsound/ha-libresync/issues/new?template=device_report.yml), whether it works or not. Attach the diagnostics: **Settings → Devices & Services → LibreSync → ⋮ → Download diagnostics**. The file hides your hub's address, its serial number and the track you are playing, and it holds what is needed to fix a hub nobody here owns.
 
 ## Where the rest of it is
 

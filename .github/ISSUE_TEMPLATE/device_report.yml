@@ -1,0 +1,76 @@
+name: Device report
+description: Tell us how the integration behaves on your hub, whether it works or not.
+title: "Device report: <brand> <model>"
+labels: ["device report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Only the Platin Stereo Hub has been tested so far, so a report from any other hub is useful, and "everything works" is a useful report too.
+  - type: input
+    id: device
+    attributes:
+      label: Brand and model
+      description: As printed on the box or the hub, for example "System Audio Stereo Hub HT".
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: Vendor app
+      description: The app you set the hub up with, for example "Platin Hub" or "SA Cockpit".
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: As shown in the vendor's app, if you can find it.
+  - type: input
+    id: versions
+    attributes:
+      label: Home Assistant and integration versions
+      description: For example "2026.9.3, ha-libresync 0.2.1".
+    validations:
+      required: true
+  - type: dropdown
+    id: setup
+    attributes:
+      label: How was the hub added?
+      options:
+        - It was discovered by itself
+        - I added it by its address
+        - I could not add it
+    validations:
+      required: true
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works
+      description: Tick what you tried and saw working. Leave the rest unticked and describe it below.
+      options:
+        - label: Volume and mute
+        - label: Source selection, and the source names are right
+        - label: Play, pause, stop, next and previous
+        - label: Track title, artist and artwork
+        - label: Power switch
+        - label: Room correction and manual EQ switches
+        - label: EQ preset select
+        - label: Audio sensor
+  - type: textarea
+    id: details
+    attributes:
+      label: What did not work, or looked wrong
+      description: What you did, what you expected, and what happened instead.
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: |
+        Settings → Devices & Services → LibreSync → ⋮ → Download diagnostics, then drag the file here. It hides your hub's address, its serial number and the track you are playing.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: Anything from Settings → System → Logs that mentions libresync or aiolibresync.
+      render: text
