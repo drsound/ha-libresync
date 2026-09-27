@@ -53,6 +53,12 @@ async def test_a_hub_that_never_answers_is_retried(hass, config_entry, mock_clie
     assert mock_client.subscribers == []
 
 
+def _device(hass, entry) -> dr.DeviceEntry:
+    """The entry's one device. Identifiers are no longer unique across entries."""
+    [device] = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    return device
+
+
 async def _setup(hass, entry, mock_client) -> None:
     entry.add_to_hass(hass)
     with patch("custom_components.libresync.LibreSyncClient", return_value=mock_client):
@@ -67,7 +73,7 @@ async def test_the_device_card_follows_the_serial_and_the_model(hass, config_ent
     # Box 231 answers a moment after the ports are up, as it does on the hub.
     push(mock_client, FULL_STATE.evolve(serial=SERIAL))
     await hass.async_block_till_done()
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, UDN)})
+    device = _device(hass, config_entry)
     assert device is not None
     assert device.serial_number == SERIAL
     assert device.model == "Stereo Hub"
@@ -76,7 +82,7 @@ async def test_the_device_card_follows_the_serial_and_the_model(hass, config_ent
     # The model answers on its own frame too, and the device card follows it.
     push(mock_client, FULL_STATE.evolve(serial=SERIAL, model="Stereo Hub HT"))
     await hass.async_block_till_done()
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, UDN)})
+    device = _device(hass, config_entry)
     assert device is not None
     assert device.model == "Stereo Hub HT"
 
@@ -89,10 +95,12 @@ async def test_the_device_keeps_its_model_and_serial_across_a_reload(
     await _setup(hass, config_entry, mock_client)
 
     mock_client.state = FULL_STATE.evolve(serial=None, model=None)
-    await hass.config_entries.async_reload(config_entry.entry_id)
-    await hass.async_block_till_done()
+    with patch("custom_components.libresync.LibreSyncClient", return_value=mock_client):
+        await hass.config_entries.async_reload(config_entry.entry_id)
+        await hass.async_block_till_done()
+    assert config_entry.state is ConfigEntryState.LOADED
 
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, UDN)})
+    device = _device(hass, config_entry)
     assert device is not None
     assert device.serial_number == SERIAL
     assert device.model == "Stereo Hub"
@@ -130,7 +138,7 @@ async def test_the_device_takes_the_name_the_hub_announced(hass, mock_client):
     )
     await _setup(hass, entry, mock_client)
 
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, UDN)})
+    device = _device(hass, entry)
     assert device is not None
     assert device.name == "Living room"
     assert hass.states.get("media_player.living_room") is not None

@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - run: pip install ruff
       - run: ruff check .
       - run: ruff format --check .
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       # The dependencies directly, not `pip install -e .`: an editable install
       # of this project breaks Home Assistant's custom-component loader. The
       # library pin must match manifest.json.
