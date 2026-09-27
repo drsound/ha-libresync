@@ -10,7 +10,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 
-from .const import DEFAULT_NAME, DOMAIN, MANUFACTURER
+from .const import DOMAIN, MANUFACTURER
 
 
 def handle_errors[**P](
@@ -49,9 +49,15 @@ class LibreSyncEntity(Entity):
     _attr_has_entity_name = True
     _attr_should_poll = False
 
-    def __init__(self, client: LibreSyncClient, unique_id_base: str) -> None:
+    def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
         self._client = client
-        self._unique_id_base = unique_id_base
+        # No model or serial here: setup keeps them on the device as they
+        # arrive, and a None here, before they have, would overwrite them.
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, unique_id_base)},
+            manufacturer=MANUFACTURER,
+            name=name,
+        )
 
     @property
     def snapshot(self) -> DeviceState:
@@ -62,16 +68,6 @@ class LibreSyncEntity(Entity):
         could go stale.
         """
         return self._client.state
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        # No model or serial here: setup keeps them on the device as they
-        # arrive, and a None here, before they have, would overwrite them.
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._unique_id_base)},
-            manufacturer=MANUFACTURER,
-            name=DEFAULT_NAME,
-        )
 
     @property
     def available(self) -> bool:

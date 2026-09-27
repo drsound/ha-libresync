@@ -25,7 +25,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     assert entry.unique_id is not None
-    async_add_entities([LibreSyncAudioActive(entry.runtime_data, entry.unique_id)])
+    async_add_entities([LibreSyncAudioActive(entry.runtime_data, entry.unique_id, entry.title)])
 
 
 class LibreSyncAudioActive(LibreSyncEntity, BinarySensorEntity):
@@ -33,8 +33,8 @@ class LibreSyncAudioActive(LibreSyncEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.SOUND
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, client: LibreSyncClient, unique_id_base: str) -> None:
-        super().__init__(client, unique_id_base)
+    def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
+        super().__init__(client, unique_id_base, name)
         self._attr_unique_id = f"{unique_id_base}_audio"
 
     @property

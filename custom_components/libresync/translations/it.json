@@ -1,29 +1,26 @@
 {
   "config": {
-    "step": {
-      "user": {
-        "title": "Aggiungi un hub LibreSync",
-        "description": "Inserisci l'indirizzo dell'hub sulla tua rete.",
-        "data": {
-          "host": "Indirizzo"
-        },
-        "data_description": {
-          "host": "L'indirizzo IP o il nome host dell'hub, per esempio 192.168.1.50. Lo trovi nell'elenco dei dispositivi connessi del router."
-        }
-      },
-      "discovery_confirm": {
-        "title": "Aggiungere {name}?",
-        "description": "Home Assistant ha trovato questo hub LibreSync sulla tua rete."
-      }
+    "abort": {
+      "already_configured": "Il dispositivo è già configurato",
+      "already_in_progress": "Il flusso di configurazione è già in corso",
+      "cannot_connect": "Impossibile connettersi"
     },
     "error": {
-      "cannot_connect": "Nessuna risposta a quell'indirizzo. Verifica che l'hub sia acceso e sulla stessa rete.",
-      "no_identity": "L'hub risponde, ma il suo servizio UPnP sulla porta 38400 no, quindi Home Assistant non può identificarlo. Verifica che niente blocchi quella porta, poi scollega l'hub dalla corrente, ricollegalo, aspetta un minuto e riprova."
+      "cannot_connect": "Impossibile connettersi",
+      "no_identity": "L'hub risponde, ma il suo servizio UPnP sulla porta 38400 no, quindi non può identificarsi. Verifica che niente blocchi quella porta, poi scollega l'hub dalla corrente, ricollegalo, aspetta un minuto e riprova."
     },
-    "abort": {
-      "already_configured": "Questo hub è già configurato.",
-      "already_in_progress": "Questo hub è già in fase di configurazione.",
-      "cannot_connect": "Il dispositivo trovato non ha risposto sulla porta di controllo, quindi non è un hub LibreSync."
+    "step": {
+      "discovery_confirm": {
+        "description": "Vuoi configurare {name}?"
+      },
+      "user": {
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "Il nome host o l'indirizzo IP dell'hub, per esempio 192.168.1.50."
+        }
+      }
     }
   },
   "entity": {
@@ -54,7 +51,7 @@
   },
   "exceptions": {
     "cannot_connect": {
-      "message": "L'hub all'indirizzo {host} non ha risposto sulle porte 50006 e 7777. Home Assistant continuerà a riprovare."
+      "message": "L'hub all'indirizzo {host} non ha risposto sulle porte 50006 e 7777."
     },
     "invalid_source": {
       "message": "L'hub non ha una sorgente chiamata {source}."
@@ -63,7 +60,7 @@
       "message": "L'hub non ha confermato il comando in tempo, quindi potrebbe non essere stato eseguito."
     },
     "not_connected": {
-      "message": "L'hub non è connesso, quindi il comando non è stato inviato. Home Assistant sta ricollegandosi."
+      "message": "L'hub non è connesso, quindi il comando non è stato inviato."
     }
   }
 }

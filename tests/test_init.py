@@ -121,3 +121,16 @@ async def test_a_setup_that_fails_after_connecting_leaves_no_client_running(
 
     assert config_entry.state is ConfigEntryState.SETUP_ERROR
     mock_client.async_disconnect.assert_awaited_once()
+
+
+async def test_the_device_takes_the_name_the_hub_announced(hass, mock_client):
+    """The entry's title, which discovery and the manual path take from the hub."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id=UDN, title="Living room", data={CONF_HOST: HOST}
+    )
+    await _setup(hass, entry, mock_client)
+
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, UDN)})
+    assert device is not None
+    assert device.name == "Living room"
+    assert hass.states.get("media_player.living_room") is not None

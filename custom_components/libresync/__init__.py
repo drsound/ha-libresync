@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONNECT_TIMEOUT, DEFAULT_NAME, DOMAIN, MANUFACTURER, PLATFORMS
+from .const import CONNECT_TIMEOUT, DOMAIN, MANUFACTURER, PLATFORMS
 
 type LibreSyncConfigEntry = ConfigEntry[LibreSyncClient]
 
@@ -57,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.unique_id)},
         manufacturer=MANUFACTURER,
-        name=DEFAULT_NAME,
+        name=entry.title,
     )
     update_device = _device_updater(hass, device.id)
     entry.async_on_unload(client.subscribe(update_device))

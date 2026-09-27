@@ -1,29 +1,26 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Device is already configured",
+      "already_in_progress": "Configuration flow is already in progress",
+      "cannot_connect": "Failed to connect"
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "no_identity": "The hub answers, but its UPnP service on port 38400 does not, so it cannot identify itself. Check that nothing blocks that port, then unplug the hub from the mains, plug it back in, wait a minute, and try again."
+    },
     "step": {
+      "discovery_confirm": {
+        "description": "Do you want to set up {name}?"
+      },
       "user": {
-        "title": "Add a LibreSync hub",
-        "description": "Enter the hub's address on your network.",
         "data": {
           "host": "Host"
         },
         "data_description": {
-          "host": "The IP address or host name of the hub, for example 192.168.1.50. Your router's list of connected devices shows it."
+          "host": "The hostname or IP address of the hub, for example 192.168.1.50."
         }
-      },
-      "discovery_confirm": {
-        "title": "Add {name}?",
-        "description": "Home Assistant found this LibreSync hub on your network."
       }
-    },
-    "error": {
-      "cannot_connect": "Nothing answered at that address. Check that the hub is powered and on the same network.",
-      "no_identity": "This hub is reachable, but its UPnP service on port 38400 does not answer, so Home Assistant cannot identify it. Check that nothing blocks that port, then unplug the hub from the mains, plug it back in, wait a minute, and try again."
-    },
-    "abort": {
-      "already_configured": "This hub is already set up.",
-      "already_in_progress": "This hub is already being set up.",
-      "cannot_connect": "The device that was found did not answer on the control port, so it is not a LibreSync hub."
     }
   },
   "entity": {
@@ -54,7 +51,7 @@
   },
   "exceptions": {
     "cannot_connect": {
-      "message": "The hub at {host} did not answer on ports 50006 and 7777. Home Assistant will keep trying."
+      "message": "The hub at {host} did not answer on ports 50006 and 7777."
     },
     "invalid_source": {
       "message": "The hub has no source named {source}."
@@ -63,7 +60,7 @@
       "message": "The hub did not confirm the command in time, so it may not have taken effect."
     },
     "not_connected": {
-      "message": "The hub is not connected, so the command was not sent. Home Assistant is reconnecting."
+      "message": "The hub is not connected, so the command was not sent."
     }
   }
 }

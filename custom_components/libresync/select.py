@@ -33,15 +33,15 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     assert entry.unique_id is not None
-    async_add_entities([LibreSyncEqPreset(entry.runtime_data, entry.unique_id)])
+    async_add_entities([LibreSyncEqPreset(entry.runtime_data, entry.unique_id, entry.title)])
 
 
 class LibreSyncEqPreset(LibreSyncEntity, SelectEntity):
     _attr_translation_key = "eq_preset"
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(self, client: LibreSyncClient, unique_id_base: str) -> None:
-        super().__init__(client, unique_id_base)
+    def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
+        super().__init__(client, unique_id_base, name)
         self._attr_unique_id = f"{unique_id_base}_eq_preset"
 
     @property

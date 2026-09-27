@@ -60,7 +60,7 @@ async def async_setup_entry(
 ) -> None:
     assert entry.unique_id is not None
     async_add_entities(
-        LibreSyncSwitch(entry.runtime_data, entry.unique_id, description)
+        LibreSyncSwitch(entry.runtime_data, entry.unique_id, entry.title, description)
         for description in SWITCHES
     )
 
@@ -72,9 +72,10 @@ class LibreSyncSwitch(LibreSyncEntity, SwitchEntity):
         self,
         client: LibreSyncClient,
         unique_id_base: str,
+        name: str,
         description: LibreSyncSwitchDescription,
     ) -> None:
-        super().__init__(client, unique_id_base)
+        super().__init__(client, unique_id_base, name)
         self.entity_description = description
         self._attr_unique_id = f"{unique_id_base}_{description.key}"
 

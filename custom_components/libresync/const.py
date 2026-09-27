@@ -19,7 +19,7 @@ MANUFACTURER: Final = "Libre Wireless"
 
 #: The name a hub gets when it will not say what it is called. Every path
 #: through the config flow can reach it, so it is one string rather than four.
-DEFAULT_NAME: Final = "Stereo Hub"
+DEFAULT_NAME: Final = "LibreSync hub"
 
 #: How long setup waits for both ports before handing the retry to Home
 #: Assistant. On the LAN they are up in about 0.05 s; this is for a hub that is

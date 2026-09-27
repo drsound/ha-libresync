@@ -61,7 +61,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     assert entry.unique_id is not None  # the config flow refuses an entry without one
-    async_add_entities([LibreSyncMediaPlayer(entry.runtime_data, entry.unique_id)])
+    async_add_entities([LibreSyncMediaPlayer(entry.runtime_data, entry.unique_id, entry.title)])
 
 
 class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
@@ -89,8 +89,8 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
         | MediaPlayerEntityFeature.PREVIOUS_TRACK
     )
 
-    def __init__(self, client: LibreSyncClient, unique_id_base: str) -> None:
-        super().__init__(client, unique_id_base)
+    def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
+        super().__init__(client, unique_id_base, name)
         self._attr_unique_id = unique_id_base
         #: The level to go back to on unmute, or None when we are not muting.
         self._muted_volume: int | None = None
