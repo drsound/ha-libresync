@@ -65,7 +65,7 @@ body:
     attributes:
       label: Diagnostics
       description: |
-        Settings → Devices & Services → LibreSync → ⋮ → Download diagnostics, then drag the file here. It hides your hub's address, its serial number and the track you are playing.
+        Settings → Devices & Services → LibreSync → ⋮ → Download diagnostics, then drag the file here. It hides your hub's address, its factory code and the track you are playing.
     validations:
       required: true
   - type: textarea

@@ -66,16 +66,19 @@ async def _setup(hass, entry, mock_client) -> None:
         await hass.async_block_till_done()
 
 
-async def test_the_device_card_follows_the_serial_and_the_model(hass, config_entry, mock_client):
+async def test_the_device_card_follows_the_model_and_never_shows_the_serial(
+    hass, config_entry, mock_client
+):
     mock_client.state = FULL_STATE.evolve(serial=None, model=None)
     await _setup(hass, config_entry, mock_client)
 
     # Box 231 answers a moment after the ports are up, as it does on the hub.
+    # Its serial is the module's production code, not the one on the label.
     push(mock_client, FULL_STATE.evolve(serial=SERIAL))
     await hass.async_block_till_done()
     device = _device(hass, config_entry)
     assert device is not None
-    assert device.serial_number == SERIAL
+    assert device.serial_number is None
     assert device.model == "Stereo Hub"
     assert dict(config_entry.data) == {CONF_HOST: HOST}
 
@@ -87,11 +90,8 @@ async def test_the_device_card_follows_the_serial_and_the_model(hass, config_ent
     assert device.model == "Stereo Hub HT"
 
 
-async def test_the_device_keeps_its_model_and_serial_across_a_reload(
-    hass, config_entry, mock_client
-):
+async def test_the_device_keeps_its_model_across_a_reload(hass, config_entry, mock_client):
     """Entities are added before the hub answers, and must not blank the card."""
-    mock_client.state = FULL_STATE.evolve(serial=SERIAL)
     await _setup(hass, config_entry, mock_client)
 
     mock_client.state = FULL_STATE.evolve(serial=None, model=None)
@@ -102,8 +102,23 @@ async def test_the_device_keeps_its_model_and_serial_across_a_reload(
 
     device = _device(hass, config_entry)
     assert device is not None
-    assert device.serial_number == SERIAL
     assert device.model == "Stereo Hub"
+
+
+async def test_a_serial_left_by_an_older_version_is_cleared(hass, config_entry, mock_client):
+    config_entry.add_to_hass(hass)
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        identifiers={(DOMAIN, UDN)},
+        serial_number=SERIAL,
+    )
+    with patch("custom_components.libresync.LibreSyncClient", return_value=mock_client):
+        await hass.config_entries.async_setup(config_entry.entry_id)
+        await hass.async_block_till_done()
+
+    device = _device(hass, config_entry)
+    assert device is not None
+    assert device.serial_number is None
 
 
 async def test_an_entry_from_a_newer_version_is_not_downgraded(hass, mock_client):

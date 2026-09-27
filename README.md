@@ -46,7 +46,7 @@ Seeking, media browsing, speaker grouping and multiroom. Defining EQ filters —
 
 That is the whole list so far. The same hub is sold as the System Audio, Buchardt and Econik Stereo Hubs and the Triangle Compact Stereo Hub, Mesanovic bundles Platin's with its monitors, and Platin and others make HT and Surround versions. The platform probably ships under other names too. They should work, but nobody has checked yet.
 
-**If you own one of them, please try it** and [open a device report](https://github.com/drsound/ha-libresync/issues/new?template=device_report.yml), whether it works or not. Attach the diagnostics: **Settings → Devices & Services → LibreSync → ⋮ → Download diagnostics**. The file hides your hub's address, its serial number and the track you are playing, and it holds what is needed to fix a hub nobody here owns.
+**If you own one of them, please try it** and [open a device report](https://github.com/drsound/ha-libresync/issues/new?template=device_report.yml), whether it works or not. Attach the diagnostics: **Settings → Devices & Services → LibreSync → ⋮ → Download diagnostics**. The file hides your hub's address, its factory code and the track you are playing, and it holds what is needed to fix a hub nobody here owns.
 
 ## Where the rest of it is
 

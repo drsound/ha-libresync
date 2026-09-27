@@ -30,7 +30,7 @@ async def async_get_config_entry_diagnostics(
             # The UDN is not redacted, deliberately. It is a runtime-generated
             # UUID rather than a serial number, it identifies which unit a
             # report is about, and without it two hubs in one report cannot be
-            # told apart. The factory serial is redacted by the library.
+            # told apart. The module's factory code is redacted by the library.
             "unique_id": entry.unique_id,
         },
         "client": entry.runtime_data.diagnostics(),

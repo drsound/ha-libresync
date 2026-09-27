@@ -9,7 +9,6 @@ safety net rather than the mechanism.
 """
 
 from collections.abc import Callable
-from typing import Any
 
 from aiolibresync import DeviceState, LibreSyncClient, NotConnectedError
 from homeassistant.config_entries import ConfigEntry
@@ -48,10 +47,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     entry.async_on_unload(client.async_disconnect)
     entry.runtime_data = client
 
-    # Serial and model answer a moment after the ports come up, and Home
-    # Assistant reads `device_info` only when an entity is added. So the device
-    # is created here, and kept current from the pushed state, before and after
-    # the entities register.
+    # The model answers a moment after the ports come up, and Home Assistant
+    # reads `device_info` only when an entity is added. So the device is created
+    # here, and kept current from the pushed state, before and after the
+    # entities register. The hub's serial is a production code of the Libre
+    # module, not the serial printed on the product, so the card does not carry
+    # it; versions up to 0.2.1 put it there, and this clears it.
     assert entry.unique_id is not None  # the config flow refuses an entry without one
     device = dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -59,6 +60,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
         manufacturer=MANUFACTURER,
         name=entry.title,
     )
+    if device.serial_number is not None:
+        dr.async_get(hass).async_update_device(device.id, serial_number=None)
     update_device = _device_updater(hass, device.id)
     entry.async_on_unload(client.subscribe(update_device))
     update_device(client.state)
@@ -68,23 +71,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
 
 
 def _device_updater(hass: HomeAssistant, device_id: str) -> Callable[[DeviceState], None]:
-    """Keep the model and the serial on the device card current."""
-    seen: tuple[str | None, str | None] | None = None
+    """Keep the model on the device card current."""
+    seen: str | None = None
 
     @callback
     def update(state: DeviceState) -> None:
         nonlocal seen
         # Called on every push, including the position once a second.
-        if (state.serial, state.model) == seen:
+        if not state.model or state.model == seen:
             return
-        seen = (state.serial, state.model)
-        changes: dict[str, Any] = {}
-        if state.serial:
-            changes["serial_number"] = state.serial
-        if state.model:
-            changes["model"] = state.model
-        if changes:
-            dr.async_get(hass).async_update_device(device_id, **changes)
+        seen = state.model
+        dr.async_get(hass).async_update_device(device_id, model=state.model)
 
     return update
 
