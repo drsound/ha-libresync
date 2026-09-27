@@ -8,7 +8,6 @@ a slow poll of its own for the two properties nothing announces, and that is a
 safety net rather than the mechanism.
 """
 
-import logging
 from collections.abc import Callable
 from typing import Any
 
@@ -18,15 +17,8 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
 
 from .const import CONNECT_TIMEOUT, DEFAULT_NAME, DOMAIN, MANUFACTURER, PLATFORMS
-
-_LOGGER = logging.getLogger(__name__)
-
-# Entry data keys of minor version 2, read only by the migration.
-_LEGACY_SERIAL = "serial"
-_LEGACY_UDN = "udn"
 
 type LibreSyncConfigEntry = ConfigEntry[LibreSyncClient]
 
@@ -95,58 +87,6 @@ def _device_updater(hass: HomeAssistant, device_id: str) -> Callable[[DeviceStat
             dr.async_get(hass).async_update_device(device_id, **changes)
 
     return update
-
-
-async def async_migrate_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) -> bool:
-    """Bring an entry to 1.3: keyed on the UDN, with only the host in its data.
-
-    1.1 was keyed on the UDN already. 1.2 was keyed on the factory serial when
-    the hub had one, and kept the serial and the UDN in its data: such an entry
-    is re-keyed on its recorded UDN, together with its device and its entities,
-    so entity ids and history survive. One with no UDN recorded cannot be
-    re-keyed without asking the network, and is left for the user to add again.
-    Nothing is read from the network here.
-    """
-    if entry.version > 1:
-        return False
-    if entry.minor_version < 3:
-        unique_id = entry.unique_id
-        serial = entry.data.get(_LEGACY_SERIAL)
-        if unique_id is not None and unique_id == serial:
-            udn = entry.data.get(_LEGACY_UDN)
-            if not udn:
-                _LOGGER.error(
-                    "The hub at %s was added by its serial and its UPnP identity was "
-                    "never recorded. Remove it and add it again",
-                    entry.data[CONF_HOST],
-                )
-                return False
-            await _async_rekey(hass, entry, unique_id, udn)
-            unique_id = udn
-        hass.config_entries.async_update_entry(
-            entry,
-            unique_id=unique_id,
-            data={CONF_HOST: entry.data[CONF_HOST]},
-            minor_version=3,
-        )
-    return True
-
-
-async def _async_rekey(
-    hass: HomeAssistant, entry: LibreSyncConfigEntry, old: str, new: str
-) -> None:
-    """Move the entry's device and entities from one unique ID base to another."""
-    device_registry = dr.async_get(hass)
-    if device := device_registry.async_get_device(identifiers={(DOMAIN, old)}):
-        device_registry.async_update_device(device.id, new_identifiers={(DOMAIN, new)})
-
-    @callback
-    def migrate(entity: er.RegistryEntry) -> dict[str, Any] | None:
-        if not entity.unique_id.startswith(old):
-            return None
-        return {"new_unique_id": new + entity.unique_id[len(old) :]}
-
-    await er.async_migrate_entries(hass, entry.entry_id, migrate)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) -> bool:

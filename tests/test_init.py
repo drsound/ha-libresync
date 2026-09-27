@@ -6,7 +6,6 @@ from aiolibresync import NotConnectedError
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.libresync.const import CONNECT_TIMEOUT, DOMAIN
@@ -59,72 +58,6 @@ async def _setup(hass, entry, mock_client) -> None:
     with patch("custom_components.libresync.LibreSyncClient", return_value=mock_client):
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
-
-
-async def test_an_entry_from_1_1_is_already_keyed_on_the_udn(hass, config_entry, mock_client):
-    """1.1 entries were keyed on the UDN and stored only the host."""
-    assert config_entry.minor_version == 1
-    await _setup(hass, config_entry, mock_client)
-
-    assert config_entry.state is ConfigEntryState.LOADED
-    assert config_entry.minor_version == 3
-    assert config_entry.unique_id == UDN
-    assert dict(config_entry.data) == {CONF_HOST: HOST}
-
-
-async def test_an_entry_from_1_2_keyed_on_the_udn_keeps_only_the_host(hass, mock_client):
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id=UDN,
-        minor_version=2,
-        data={CONF_HOST: HOST, "serial": SERIAL, "udn": UDN},
-    )
-    await _setup(hass, entry, mock_client)
-
-    assert entry.state is ConfigEntryState.LOADED
-    assert entry.unique_id == UDN
-    assert dict(entry.data) == {CONF_HOST: HOST}
-
-
-async def test_an_entry_from_1_2_keyed_on_the_serial_moves_to_the_udn(hass, mock_client):
-    """The device and the entities follow, so entity ids and history survive."""
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id=SERIAL,
-        minor_version=2,
-        data={CONF_HOST: HOST, "serial": SERIAL, "udn": UDN},
-    )
-    entry.add_to_hass(hass)
-    device = dr.async_get(hass).async_get_or_create(
-        config_entry_id=entry.entry_id, identifiers={(DOMAIN, SERIAL)}
-    )
-    entities = er.async_get(hass)
-    player = entities.async_get_or_create(
-        "media_player", DOMAIN, SERIAL, config_entry=entry, suggested_object_id="stereo_hub"
-    )
-    power = entities.async_get_or_create(
-        "switch", DOMAIN, f"{SERIAL}_power", config_entry=entry, suggested_object_id="hub_power"
-    )
-    await _setup(hass, entry, mock_client)
-
-    assert entry.state is ConfigEntryState.LOADED
-    assert entry.minor_version == 3
-    assert entry.unique_id == UDN
-    assert dict(entry.data) == {CONF_HOST: HOST}
-    assert dr.async_get(hass).async_get(device.id).identifiers == {(DOMAIN, UDN)}
-    assert entities.async_get(player.entity_id).unique_id == UDN
-    assert entities.async_get(power.entity_id).unique_id == f"{UDN}_power"
-
-
-async def test_an_entry_keyed_on_the_serial_with_no_udn_cannot_migrate(hass, mock_client):
-    entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id=SERIAL,
-        minor_version=2,
-        data={CONF_HOST: HOST, "serial": SERIAL},
-    )
-    await _setup(hass, entry, mock_client)
-    assert entry.state is ConfigEntryState.MIGRATION_ERROR
 
 
 async def test_the_device_card_follows_the_serial_and_the_model(hass, config_entry, mock_client):

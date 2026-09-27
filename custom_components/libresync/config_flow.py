@@ -28,9 +28,6 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
     """Add a hub by address, or accept one Home Assistant found."""
 
     VERSION = 1
-    #: 3 keys every entry on the UDN and stores only the host; see
-    #: `async_migrate_entry`.
-    MINOR_VERSION = 3
 
     def __init__(self) -> None:
         self._discovered: DiscoveredDevice | None = None
