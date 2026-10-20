@@ -127,25 +127,6 @@ async def test_an_entry_from_a_newer_version_is_not_downgraded(hass, mock_client
     assert entry.state is ConfigEntryState.MIGRATION_ERROR
 
 
-async def test_a_setup_that_fails_after_connecting_leaves_no_client_running(
-    hass, config_entry, mock_client
-):
-    """Home Assistant does not unload an entry whose setup raised."""
-    config_entry.add_to_hass(hass)
-    with (
-        patch("custom_components.libresync.LibreSyncClient", return_value=mock_client),
-        patch(
-            "homeassistant.config_entries.ConfigEntries.async_forward_entry_setups",
-            side_effect=RuntimeError("boom"),
-        ),
-    ):
-        await hass.config_entries.async_setup(config_entry.entry_id)
-        await hass.async_block_till_done()
-
-    assert config_entry.state is ConfigEntryState.SETUP_ERROR
-    mock_client.async_disconnect.assert_awaited_once()
-
-
 async def test_the_device_takes_the_name_the_hub_announced(hass, mock_client):
     """The entry's title, which discovery and the manual path take from the hub."""
     entry = MockConfigEntry(

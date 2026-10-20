@@ -24,8 +24,8 @@ def no_setup():
     Without this, every created entry would build a real client against an
     address nothing answers on, and wait out the connect timeout.
     """
-    with patch("custom_components.libresync.async_setup_entry", return_value=True):
-        yield
+    with patch("custom_components.libresync.async_setup_entry", return_value=True) as setup:
+        yield setup
 
 
 @contextmanager
@@ -205,21 +205,20 @@ async def test_discovery_whose_location_names_no_host_is_dropped(hass):
 
 
 @pytest.mark.parametrize(
-    ("state", "reloaded"),
-    [(ConfigEntryState.SETUP_RETRY, True), (ConfigEntryState.LOADED, False)],
+    ("state", "setups"),
+    [(ConfigEntryState.SETUP_RETRY, 1), (ConfigEntryState.LOADED, 0)],
 )
-async def test_discovery_of_a_hub_waiting_to_retry_retries_it_now(
-    hass, config_entry, state, reloaded
-):
+async def test_discovery_of_a_hub_waiting_to_retry_retries_it_now(hass, no_setup, state, setups):
     """Found again at the same address: a setup waiting to retry is retried now."""
-    config_entry.add_to_hass(hass)
-    config_entry.mock_state(hass, state)
-    with patch.object(hass.config_entries, "async_schedule_reload") as reload:
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": "ssdp"}, data=SSDP_INFO
-        )
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=UDN, data={CONF_HOST: HOST}, state=state)
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "ssdp"}, data=SSDP_INFO
+    )
+    await hass.async_block_till_done()
     assert result["reason"] == "already_configured"
-    assert reload.called is reloaded
+    assert len(no_setup.mock_calls) == setups
+    assert entry.state is ConfigEntryState.LOADED
 
 
 async def test_a_pending_discovery_goes_away_when_the_hub_is_added_by_hand(hass):

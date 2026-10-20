@@ -42,8 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
         ) from err
 
     # Through the entry rather than in `async_unload_entry`: Home Assistant runs
-    # these after the platforms have unloaded, and also when a later step of
-    # this setup fails, which does not unload the entry.
+    # these after the platforms have unloaded.
     entry.async_on_unload(client.async_disconnect)
     entry.runtime_data = client
 
