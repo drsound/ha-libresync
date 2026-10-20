@@ -263,6 +263,29 @@ async def test_a_position_that_moves_while_paused_is_written(
     assert hass.states.get(ENTITY).attributes["media_position"] == 11
 
 
+async def test_a_write_for_another_reason_keeps_the_time_the_position_was_read(
+    hass, config_entry, mock_client, freezer
+):
+    """A volume push carries the last position pushed, which may not have been
+    written. Stamping it now would move the shown position back."""
+    await setup(hass, config_entry, mock_client)
+    playing = FULL_STATE.evolve(
+        play_state=PlayState.PLAYING, audio_state=PlayState.PLAYING, position_ms=10000
+    )
+    push(mock_client, playing)
+    await hass.async_block_till_done()
+    read_at = hass.states.get(ENTITY).attributes["media_position_updated_at"]
+
+    freezer.tick(timedelta(seconds=1))
+    push(mock_client, playing.evolve(position_ms=11000))
+    freezer.tick(timedelta(milliseconds=900))
+    push(mock_client, playing.evolve(position_ms=11000, volume=40))
+    await hass.async_block_till_done()
+    attributes = hass.states.get(ENTITY).attributes
+    assert attributes["volume_level"] == 0.4
+    assert attributes["media_position_updated_at"] == read_at
+
+
 async def test_a_seek_back_to_the_written_position_is_written_with_a_new_time(
     hass, config_entry, mock_client, freezer
 ):
