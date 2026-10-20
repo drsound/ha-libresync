@@ -263,6 +263,32 @@ async def test_a_position_that_moves_while_paused_is_written(
     assert hass.states.get(ENTITY).attributes["media_position"] == 11
 
 
+async def test_a_seek_back_to_the_written_position_is_written_with_a_new_time(
+    hass, config_entry, mock_client, freezer
+):
+    """The positions in between were not written, so the stamp is still the old
+    one: keeping it would jump the position forward by the time since then."""
+    await setup(hass, config_entry, mock_client)
+    playing = FULL_STATE.evolve(
+        play_state=PlayState.PLAYING, audio_state=PlayState.PLAYING, position_ms=10000
+    )
+    push(mock_client, playing)
+    await hass.async_block_till_done()
+    read_at = hass.states.get(ENTITY).attributes["media_position_updated_at"]
+
+    freezer.tick(timedelta(seconds=1))
+    push(mock_client, playing.evolve(position_ms=11000))
+    freezer.tick(timedelta(seconds=1))
+    push(mock_client, playing.evolve(position_ms=12000))
+
+    freezer.tick(timedelta(seconds=1))
+    push(mock_client, playing)
+    await hass.async_block_till_done()
+    attributes = hass.states.get(ENTITY).attributes
+    assert attributes["media_position"] == 10
+    assert attributes["media_position_updated_at"] - read_at == timedelta(seconds=3)
+
+
 async def test_resuming_at_the_same_position_does_not_reuse_the_time_of_the_pause(
     hass, config_entry, mock_client, freezer
 ):
