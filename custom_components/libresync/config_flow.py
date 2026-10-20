@@ -51,7 +51,13 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=device.name or DEFAULT_NAME, data={CONF_HOST: host}
                 )
-        return self.async_show_form(step_id="user", data_schema=STEP_USER_SCHEMA, errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            # Typed as probatio since 2026.10, which 2026.8 does not ship; a
+            # voluptuous schema is still accepted.
+            data_schema=STEP_USER_SCHEMA,  # type: ignore[arg-type]
+            errors=errors,
+        )
 
     async def async_step_ssdp(self, discovery_info: SsdpServiceInfo) -> ConfigFlowResult:
         """A MediaRenderer answered a search. Confirm it is one of ours.

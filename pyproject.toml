@@ -40,3 +40,10 @@ select = ["E", "F", "I", "UP", "B", "ASYNC", "RUF"]
 python_version = "3.14"
 strict = true
 files = ["custom_components/libresync"]
+
+# Home Assistant 2026.10 moved the device class enums into each platform's
+# `const` module, which only 2026.10 has, and re-exports them implicitly. The
+# platform modules are still where they can be imported from on 2026.8.
+[[tool.mypy.overrides]]
+module = "homeassistant.components.*"
+implicit_reexport = true
