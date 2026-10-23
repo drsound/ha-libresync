@@ -72,6 +72,7 @@ def mock_client() -> MagicMock:
     """
     client = create_autospec(LibreSyncClient, instance=True)
     client.state = FULL_STATE
+    client.media = True
     client.subscribers = []
 
     def subscribe(callback):

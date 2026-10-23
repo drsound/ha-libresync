@@ -25,3 +25,16 @@ DEFAULT_NAME: Final = "LibreSync hub"
 #: Assistant. On the LAN they are up in about 0.05 s; this is for a hub that is
 #: still booting or a network that is having a bad moment.
 CONNECT_TIMEOUT: Final = 10.0
+
+#: The Libre module the hub reported over LSSDP when it was added: `LS9` on the
+#: original Stereo Hub, `LS10` on the newer ones. Absent on entries added before
+#: 0.3, which are all hubs that worked with both ports.
+CONF_MODULE: Final = "module"
+
+#: Modules whose port 7777 is wrapped in mutual TLS. Without a client
+#: certificate, such a hub runs on port 50006 alone: power and source.
+TLS_MODULES: Final = frozenset({"LS10"})
+
+#: Power is not pushed on those hubs when it changes on the remote, so it is
+#: polled more often than the library's default.
+TLS_POLL_INTERVAL: Final = 10.0

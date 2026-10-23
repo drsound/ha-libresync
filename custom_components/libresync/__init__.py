@@ -10,14 +10,22 @@ safety net rather than the mechanism.
 
 from collections.abc import Callable
 
-from aiolibresync import DeviceState, LibreSyncClient, NotConnectedError
+from aiolibresync import POLL_INTERVAL, DeviceState, LibreSyncClient, NotConnectedError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONNECT_TIMEOUT, DOMAIN, MANUFACTURER, PLATFORMS
+from .const import (
+    CONF_MODULE,
+    CONNECT_TIMEOUT,
+    DOMAIN,
+    MANUFACTURER,
+    PLATFORMS,
+    TLS_MODULES,
+    TLS_POLL_INTERVAL,
+)
 
 type LibreSyncConfigEntry = ConfigEntry[LibreSyncClient]
 
@@ -31,7 +39,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     set up, a later disconnection is not a setup failure: the entities go
     unavailable and the client reconnects on its own.
     """
-    client = LibreSyncClient(entry.data[CONF_HOST])
+    # A newer hub, whose 7777 needs a certificate, runs on 50006 alone: the
+    # entities that need 7777 are not created, and power is polled more often.
+    media = entry.data.get(CONF_MODULE) not in TLS_MODULES
+    client = LibreSyncClient(
+        entry.data[CONF_HOST],
+        media=media,
+        poll_interval=POLL_INTERVAL if media else TLS_POLL_INTERVAL,
+    )
     try:
         await client.async_connect(timeout=CONNECT_TIMEOUT)
     except NotConnectedError as err:

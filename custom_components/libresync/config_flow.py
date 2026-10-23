@@ -1,15 +1,19 @@
 """Two ways in, one identity: the hub's UPnP UDN.
 
 Discovery sees the UDN without connecting, and the manual path reads it from the
-device description on port 38400. A hub whose UPnP service does not answer
-cannot be added, and the error says how to bring it back: restarting the hub.
+device description: on port 38400, or on the newer hubs wherever a search reply
+says. A hub whose UPnP service does not answer cannot be added, and the error
+says how to bring it back: restarting the hub.
+
+Both paths also store the Libre module the hub reports over LSSDP, which is what
+tells a newer hub, whose 7777 needs TLS, from the original one.
 """
 
 from typing import Any
 from urllib.parse import urlparse
 
 import voluptuous as vol
-from aiolibresync import DiscoveredDevice, async_probe, async_probe_control
+from aiolibresync import DiscoveredDevice, async_probe, async_probe_control, async_query_lssdp
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST
 from homeassistant.helpers.selector import TextSelector
@@ -19,7 +23,7 @@ from homeassistant.helpers.service_info.ssdp import (
     SsdpServiceInfo,
 )
 
-from .const import DEFAULT_NAME, DOMAIN
+from .const import CONF_MODULE, DEFAULT_NAME, DOMAIN
 
 STEP_USER_SCHEMA = vol.Schema({vol.Required(CONF_HOST): TextSelector()})
 
@@ -49,7 +53,8 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(device.udn, raise_on_progress=False)
                 self._abort_if_unique_id_configured(updates={CONF_HOST: host})
                 return self.async_create_entry(
-                    title=device.name or DEFAULT_NAME, data={CONF_HOST: host}
+                    title=device.name or DEFAULT_NAME,
+                    data=_entry_data(host, device.module),
                 )
         return self.async_show_form(
             step_id="user",
@@ -83,8 +88,12 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="cannot_connect")
 
         # The name comes from the description Home Assistant has already fetched.
+        lssdp = await async_query_lssdp(host)
         self._discovered = DiscoveredDevice(
-            host=host, udn=udn, name=discovery_info.upnp.get(ATTR_UPNP_FRIENDLY_NAME)
+            host=host,
+            udn=udn,
+            name=discovery_info.upnp.get(ATTR_UPNP_FRIENDLY_NAME),
+            module=lssdp.module if lssdp is not None else None,
         )
         self.context["title_placeholders"] = {"name": self._discovered.name or DEFAULT_NAME}
         return await self.async_step_discovery_confirm()
@@ -96,8 +105,18 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         assert self._discovered is not None
         name = self._discovered.name or DEFAULT_NAME
         if user_input is not None:
-            return self.async_create_entry(title=name, data={CONF_HOST: self._discovered.host})
+            return self.async_create_entry(
+                title=name, data=_entry_data(self._discovered.host, self._discovered.module)
+            )
         self._set_confirm_only()
         return self.async_show_form(
             step_id="discovery_confirm", description_placeholders={"name": name}
         )
+
+
+def _entry_data(host: str, module: str | None) -> dict[str, Any]:
+    """The entry's data. A module the hub did not report is left out."""
+    data: dict[str, Any] = {CONF_HOST: host}
+    if module is not None:
+        data[CONF_MODULE] = module
+    return data

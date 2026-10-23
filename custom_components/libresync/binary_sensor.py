@@ -25,6 +25,8 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     assert entry.unique_id is not None
+    if not entry.runtime_data.media:
+        return  # the audio report never reaches 50006 on the newer hubs
     async_add_entities([LibreSyncAudioActive(entry.runtime_data, entry.unique_id, entry.title)])
 
 

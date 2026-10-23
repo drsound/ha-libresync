@@ -116,6 +116,10 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
     def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
         super().__init__(client, unique_id_base, name)
         self._attr_unique_id = unique_id_base
+        if not client.media:
+            # A newer hub on 50006 alone: volume, transport and metadata are
+            # all on the TLS port.
+            self._attr_supported_features = MediaPlayerEntityFeature.SELECT_SOURCE
         #: The level to go back to on unmute, or None when we are not muting.
         self._muted_volume: int | None = None
         #: The state last written, to tell a position that only moved on.
@@ -136,6 +140,13 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
         it after a return to Streaming. That was seen again on this hardware
         with the hub switched *off*.
         """
+        if not self._client.media:
+            # No audio report reaches 50006 on the newer hubs; power is all
+            # there is to go on.
+            power = self.snapshot.power
+            if power is None:
+                return None
+            return MediaPlayerState.ON if power else MediaPlayerState.OFF
         playback = self.snapshot.playback
         return _STATES.get(playback) if playback is not None else None
 

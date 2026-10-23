@@ -33,6 +33,8 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     assert entry.unique_id is not None
+    if not entry.runtime_data.media:
+        return  # not decoded yet on the newer hubs, see switch.py
     async_add_entities([LibreSyncEqPreset(entry.runtime_data, entry.unique_id, entry.title)])
 
 

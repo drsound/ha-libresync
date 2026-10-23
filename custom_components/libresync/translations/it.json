@@ -7,7 +7,7 @@
     },
     "error": {
       "cannot_connect": "Impossibile connettersi",
-      "no_identity": "L'hub risponde, ma il suo servizio UPnP sulla porta 38400 no, quindi non può identificarsi. Verifica che niente blocchi quella porta, poi scollega l'hub dalla corrente, ricollegalo, aspetta un minuto e riprova."
+      "no_identity": "L'hub risponde, ma il suo servizio UPnP no, quindi non può identificarsi. Verifica che niente blocchi la porta TCP 38400 e la porta UDP 1900, poi scollega l'hub dalla corrente, ricollegalo, aspetta un minuto e riprova."
     },
     "step": {
       "discovery_confirm": {

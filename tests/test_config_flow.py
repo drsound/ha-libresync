@@ -6,13 +6,14 @@ from dataclasses import replace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from aiolibresync import LssdpInfo
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.ssdp import SsdpServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.libresync.const import DOMAIN
+from custom_components.libresync.const import CONF_MODULE, DOMAIN
 
 from .conftest import FOUND, FOUND_WITHOUT_UDN, HOST, UDN
 
@@ -29,13 +30,21 @@ def no_setup():
 
 
 @contextmanager
-def _probe(result) -> Iterator[AsyncMock]:
+def _probe(result, module: str | None = None) -> Iterator[AsyncMock]:
     """Both checks a hub goes through: the full probe of the manual path, and the
-    control-port check of discovery, which has the description already.
+    control-port check of discovery, which has the description already. Discovery
+    asks LSSDP for the module too, which the manual probe reports itself.
 
     Yields the discovery one, the only one a test needs to inspect.
     """
+    if result is not None and module is not None:
+        result = replace(result, module=module)
+    lssdp = LssdpInfo(module=module) if module is not None else None
     with (
+        patch(
+            "custom_components.libresync.config_flow.async_query_lssdp",
+            AsyncMock(return_value=lssdp),
+        ),
         patch(
             "custom_components.libresync.config_flow.async_probe",
             AsyncMock(return_value=result),
@@ -261,3 +270,21 @@ async def test_an_ignored_hub_is_dropped_before_anything_is_sent_to_it(hass):
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
     probe.assert_not_awaited()
+
+
+@pytest.mark.parametrize("source", ["user", "ssdp"])
+async def test_the_module_the_hub_reports_is_stored(hass, source):
+    """It is what tells a newer hub, whose 7777 needs TLS, from the original."""
+    with _probe(FOUND, module="LS10"):
+        if source == "user":
+            result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], {CONF_HOST: HOST}
+            )
+        else:
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": "ssdp"}, data=SSDP_INFO
+            )
+            result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {CONF_HOST: HOST, CONF_MODULE: "LS10"}

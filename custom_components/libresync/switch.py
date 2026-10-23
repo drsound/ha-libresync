@@ -59,9 +59,13 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     assert entry.unique_id is not None
+    client = entry.runtime_data
     async_add_entities(
-        LibreSyncSwitch(entry.runtime_data, entry.unique_id, entry.title, description)
+        LibreSyncSwitch(client, entry.unique_id, entry.title, description)
         for description in SWITCHES
+        # The newer hubs answer the room correction and EQ queries in a form
+        # not decoded yet; only power is known to work on 50006 alone.
+        if client.media or description.key == "power"
     )
 
 
