@@ -10,7 +10,13 @@ safety net rather than the mechanism.
 
 from collections.abc import Callable
 
-from aiolibresync import POLL_INTERVAL, DeviceState, LibreSyncClient, NotConnectedError
+from aiolibresync import (
+    POLL_INTERVAL,
+    DeviceState,
+    LibreSyncClient,
+    NotConnectedError,
+    async_query_lssdp,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
@@ -41,6 +47,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     """
     # A newer hub, whose 7777 needs a certificate, runs on 50006 alone: the
     # entities that need 7777 are not created, and power is polled more often.
+    # An entry without the module, from before 0.3 or added while the LSSDP
+    # reply was lost, asks again: on an LS10 hub the 7777 attempt below fails
+    # and the retry asks once more, so a lost reply corrects itself.
+    if CONF_MODULE not in entry.data:
+        lssdp = await async_query_lssdp(entry.data[CONF_HOST])
+        if lssdp is not None and lssdp.module is not None:
+            hass.config_entries.async_update_entry(
+                entry, data={**entry.data, CONF_MODULE: lssdp.module}
+            )
     media = entry.data.get(CONF_MODULE) not in TLS_MODULES
     client = LibreSyncClient(
         entry.data[CONF_HOST],

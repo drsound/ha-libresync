@@ -1,6 +1,6 @@
 """Fixtures shared by every test: a client that never opens a socket."""
 
-from unittest.mock import MagicMock, create_autospec
+from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 
 import pytest
 from aiolibresync import DeviceState, DiscoveredDevice, LibreSyncClient, PlayState, Source
@@ -60,6 +60,14 @@ FOUND_WITHOUT_UDN = DiscoveredDevice(host=HOST, udn=None)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Loading a custom integration is opt-in, and every test here does it."""
     yield
+
+
+@pytest.fixture(autouse=True)
+def silent_lssdp():
+    """Setup asks LSSDP for the module of an entry that lacks it. Nothing answers
+    in the tests unless one patches it to."""
+    with patch("custom_components.libresync.async_query_lssdp", AsyncMock(return_value=None)):
+        yield
 
 
 @pytest.fixture
