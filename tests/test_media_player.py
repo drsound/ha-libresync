@@ -4,7 +4,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
-from aiolibresync import PlayState
+from aiolibresync import PlayState, Source
 from homeassistant.components.media_player import MediaPlayerState
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.exceptions import ServiceValidationError
@@ -71,8 +71,32 @@ async def test_the_player_offers_no_on_or_off(hass, config_entry, mock_client):
 async def test_the_source_list_is_the_devices_own(hass, config_entry, mock_client):
     await setup(hass, config_entry, mock_client)
     state = hass.states.get(ENTITY)
-    assert state.attributes["source_list"] == ["USB", "HDMI", "Streaming"]
-    assert state.attributes["source"] == "Streaming"
+    assert state.attributes["source_list"] == ["usb", "hdmi", "streaming"]
+    assert state.attributes["source"] == "streaming"
+
+
+async def test_a_source_with_no_key_keeps_the_hubs_name(hass, config_entry, mock_client):
+    """A model with inputs nobody has mapped yet still lists and selects them."""
+    await setup(hass, config_entry, mock_client)
+    push(
+        mock_client,
+        FULL_STATE.evolve(
+            source=Source(index=6, name="USBDISC"),
+            sources=(Source(index=0, name="Streaming"), Source(index=6, name="USBDISC")),
+        ),
+    )
+    await hass.async_block_till_done()
+    state = hass.states.get(ENTITY)
+    assert state.attributes["source_list"] == ["streaming", "USBDISC"]
+    assert state.attributes["source"] == "USBDISC"
+
+    await hass.services.async_call(
+        "media_player",
+        "select_source",
+        {"entity_id": ENTITY, "source": "USBDISC"},
+        blocking=True,
+    )
+    mock_client.async_select_source.assert_awaited_once_with(6)
 
 
 async def test_selecting_a_source_sends_the_json_index_not_the_position(
@@ -84,7 +108,7 @@ async def test_selecting_a_source_sends_the_json_index_not_the_position(
     await hass.services.async_call(
         "media_player",
         "select_source",
-        {"entity_id": ENTITY, "source": "HDMI"},
+        {"entity_id": ENTITY, "source": "hdmi"},
         blocking=True,
     )
     mock_client.async_select_source.assert_awaited_once_with(6)

@@ -22,6 +22,8 @@ It is **push-driven**. The hub announces volume, source, transport and metadata 
 
 [![Open your Home Assistant instance and add this repository to HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=drsound&repository=ha-libresync&category=integration)
 
+It needs Home Assistant 2026.8 or later.
+
 Through HACS: the button above adds this repository to HACS for you; otherwise add it by hand as a custom repository of type *Integration*. Install it, and restart Home Assistant. Your hub should appear by itself under **Settings → Devices & Services**; if it does not, add it with **Add integration → LibreSync** and type its address.
 
 Home Assistant installs the one library this needs, [`aiolibresync`](https://pypi.org/project/aiolibresync/), from PyPI by itself.

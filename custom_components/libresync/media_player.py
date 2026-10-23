@@ -43,6 +43,24 @@ _STATES = {
     PlayState.LOADING: MediaPlayerState.BUFFERING,
 }
 
+#: The hub names its sources itself, and the names differ between models. The
+#: known ones are shown under a translation key; any other passes through as the
+#: hub names it.
+SOURCE_KEYS = {
+    "AUX": "aux",
+    "Bluetooth": "bluetooth",
+    "COAX": "coaxial",
+    "eARC": "earc",
+    "HDMI": "hdmi",
+    "Line": "line",
+    "OPT1": "optical_1",
+    "OPT2": "optical_2",
+    "OPT3": "optical_3",
+    "PC/MAC": "pc_mac",
+    "Streaming": "streaming",
+    "USB": "usb",
+}
+
 #: Where the volume to restore on unmute is kept across a restart. An attribute
 #: rather than storage, because `RestoreEntity` hands attributes back for free
 #: and this is worth exactly one integer.
@@ -64,6 +82,11 @@ async def async_setup_entry(
     async_add_entities([LibreSyncMediaPlayer(entry.runtime_data, entry.unique_id, entry.title)])
 
 
+def _source_key(name: str) -> str:
+    """The translation key of a source, or its name if it has none."""
+    return SOURCE_KEYS.get(name, name)
+
+
 class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
     """Everything the hub plays, and everything that changes what it plays.
 
@@ -75,6 +98,7 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
     """
 
     _attr_name = None  # this is the device's primary entity; it takes its name
+    _attr_translation_key = "hub"
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
     _attr_media_content_type = MediaType.MUSIC
     _attr_supported_features = (
@@ -118,7 +142,7 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
     @property
     def source(self) -> str | None:
         source = self.snapshot.source
-        return source.name if source is not None else None
+        return _source_key(source.name) if source is not None else None
 
     @property
     def source_list(self) -> list[str]:
@@ -127,7 +151,7 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
         Never a static enum: a rebranded hub exposes a different set of inputs,
         and this list is what makes the integration work on one.
         """
-        return [source.name for source in self.snapshot.sources]
+        return [_source_key(source.name) for source in self.snapshot.sources]
 
     @property
     def volume_level(self) -> float | None:
@@ -192,7 +216,7 @@ class LibreSyncMediaPlayer(LibreSyncEntity, MediaPlayerEntity, RestoreEntity):
         its list, and the `02 21` source byte is a third numbering again.
         """
         for candidate in self.snapshot.sources:
-            if candidate.name == source:
+            if _source_key(candidate.name) == source:
                 await self._client.async_select_source(candidate.index)
                 return
         raise ServiceValidationError(

@@ -24,6 +24,28 @@
     }
   },
   "entity": {
+    "media_player": {
+      "hub": {
+        "state_attributes": {
+          "source": {
+            "state": {
+              "aux": "AUX",
+              "bluetooth": "Bluetooth",
+              "coaxial": "Coassiale",
+              "earc": "eARC",
+              "hdmi": "HDMI",
+              "line": "Linea",
+              "optical_1": "Ottico 1",
+              "optical_2": "Ottico 2",
+              "optical_3": "Ottico 3",
+              "pc_mac": "PC/Mac",
+              "streaming": "Streaming",
+              "usb": "USB"
+            }
+          }
+        }
+      }
+    },
     "switch": {
       "power": {
         "name": "Accensione"
