@@ -1,6 +1,6 @@
 [project]
 name = "ha-libresync"
-version = "0.2.4"
+version = "0.3.0b1"
 description = "Home Assistant integration for Libre Wireless LibreSync audio devices"
 requires-python = ">=3.14"
 
@@ -18,7 +18,7 @@ requires-python = ">=3.14"
 [project.optional-dependencies]
 dev = [
     # The same pin as manifest.json, so the suite runs against what ships.
-    "aiolibresync==0.5.1",
+    "aiolibresync==0.6.0b1",
     "pytest-homeassistant-custom-component",
     "ruff",
     "mypy",
