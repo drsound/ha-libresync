@@ -34,18 +34,28 @@ async def setup(hass, mock_client, module, lssdp=None):
 async def test_an_ls10_hub_runs_without_7777(hass, mock_client):
     _entry, constructor = await setup(hass, mock_client, "LS10")
 
-    assert constructor.call_args.kwargs == {"media": False, "poll_interval": TLS_POLL_INTERVAL}
+    assert constructor.call_args.kwargs == {
+        "media": False,
+        "module": "LS10",
+        "poll_interval": TLS_POLL_INTERVAL,
+    }
     features = hass.states.get(ENTITY).attributes["supported_features"]
     assert features == MediaPlayerEntityFeature.SELECT_SOURCE
 
 
-async def test_an_ls10_hub_gets_power_and_source_only(hass, mock_client, entity_registry):
+async def test_an_ls10_hub_gets_power_source_and_room_correction(
+    hass, mock_client, entity_registry
+):
     entry, _constructor = await setup(hass, mock_client, "LS10")
 
     entities = {
         e.entity_id for e in er.async_entries_for_config_entry(entity_registry, entry.entry_id)
     }
-    assert entities == {ENTITY, "switch.stereo_hub_power"}
+    assert entities == {
+        ENTITY,
+        "switch.stereo_hub_power",
+        "switch.stereo_hub_room_correction",
+    }
 
 
 async def test_an_ls10_hub_is_on_or_off_by_its_power(hass, mock_client):
@@ -70,3 +80,4 @@ async def test_an_entry_without_a_module_learns_it_at_setup(hass, mock_client):
 
     assert entry.data[CONF_MODULE] == "LS10"
     assert constructor.call_args.kwargs["media"] is False
+    assert constructor.call_args.kwargs["module"] == "LS10"

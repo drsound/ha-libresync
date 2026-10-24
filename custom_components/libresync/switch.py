@@ -63,9 +63,10 @@ async def async_setup_entry(
     async_add_entities(
         LibreSyncSwitch(client, entry.unique_id, entry.title, description)
         for description in SWITCHES
-        # The newer hubs answer the room correction and EQ queries in a form
-        # not decoded yet; only power is known to work on 50006 alone.
-        if client.media or description.key == "power"
+        # The newer hubs report manual EQ only inside the `08 08` group list,
+        # which is not decoded yet. Their room correction is: the client takes
+        # the module and speaks its form, measured on the Surround Hub.
+        if client.media or description.key != "manual_eq"
     )
 
 

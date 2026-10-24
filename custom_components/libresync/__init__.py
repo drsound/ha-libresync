@@ -60,6 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     client = LibreSyncClient(
         entry.data[CONF_HOST],
         media=media,
+        module=entry.data.get(CONF_MODULE),
         poll_interval=POLL_INTERVAL if media else TLS_POLL_INTERVAL,
     )
     try:
