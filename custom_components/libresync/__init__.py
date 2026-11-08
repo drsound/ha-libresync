@@ -12,13 +12,7 @@ import asyncio
 import logging
 from collections.abc import Callable
 
-from aiolibresync import (
-    DeviceState,
-    LibreSyncClient,
-    LssdpInfo,
-    NotConnectedError,
-    async_query_lssdp,
-)
+from aiolibresync import DeviceState, LibreSyncClient, NotConnectedError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
@@ -26,6 +20,7 @@ from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
 from .const import CONNECT_TIMEOUT, DOMAIN, MANUFACTURER, PLATFORMS, UNSUPPORTED_MODULES
+from .lssdp import LssdpInfo, async_query_lssdp
 
 _LOGGER = logging.getLogger(__name__)
 

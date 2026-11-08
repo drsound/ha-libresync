@@ -8,7 +8,6 @@ from aiolibresync import (
     DeviceState,
     DiscoveredDevice,
     LibreSyncClient,
-    LssdpInfo,
     PlayState,
     Source,
 )
@@ -16,6 +15,7 @@ from homeassistant.const import CONF_HOST
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.libresync.const import DOMAIN
+from custom_components.libresync.lssdp import LssdpInfo
 
 #: Fabricated, and shaped like the real thing: a v1 UUID, because that is what
 #: `LibreDmr` mints and what the config flow keys entries on. Not a real hub's —
@@ -66,7 +66,7 @@ FOUND_WITHOUT_UDN = DiscoveredDevice(host=HOST, udn=None)
 
 #: What the original Stereo Hub answers on LSSDP: the reply this hub sent on
 #: 2026-10-23, reduced to the fields the integration reads.
-LS9 = LssdpInfo(module="LS9", model="Stereo Hub", firmware="p15262.515.0", media_port=7777)
+LS9 = LssdpInfo(module="LS9")
 
 
 @pytest.fixture(autouse=True)

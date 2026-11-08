@@ -18,7 +18,7 @@ requires-python = ">=3.14"
 [project.optional-dependencies]
 dev = [
     # The same pin as manifest.json, so the suite runs against what ships.
-    "aiolibresync==0.5.2",
+    "aiolibresync==0.5.1",
     "pytest-homeassistant-custom-component",
     "ruff",
     "mypy",

@@ -10,7 +10,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import voluptuous as vol
-from aiolibresync import DiscoveredDevice, async_probe, async_probe_control, async_query_lssdp
+from aiolibresync import DiscoveredDevice, async_probe, async_probe_control
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST
 from homeassistant.helpers.selector import TextSelector
@@ -22,6 +22,7 @@ from homeassistant.helpers.service_info.ssdp import (
 
 from . import unsupported_module
 from .const import DEFAULT_NAME, DOMAIN
+from .lssdp import async_query_lssdp
 
 STEP_USER_SCHEMA = vol.Schema({vol.Required(CONF_HOST): TextSelector()})
 

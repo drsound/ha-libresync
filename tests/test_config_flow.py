@@ -6,7 +6,6 @@ from dataclasses import replace
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiolibresync import LssdpInfo
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
@@ -14,6 +13,7 @@ from homeassistant.helpers.service_info.ssdp import SsdpServiceInfo
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.libresync.const import DOMAIN
+from custom_components.libresync.lssdp import LssdpInfo
 
 from .conftest import FOUND, FOUND_WITHOUT_UDN, HOST, UDN
 
@@ -310,7 +310,7 @@ async def test_a_new_address_that_answers_as_another_hub_is_refused(hass, config
     assert config_entry.data[CONF_HOST] == HOST
 
 
-LS10 = LssdpInfo(module="LS10", model="Stereo Hub HT", firmware="C4A", media_port=7777)
+LS10 = LssdpInfo(module="LS10")
 
 
 async def test_an_ls10_hub_typed_by_hand_is_turned_away_with_the_reason(hass, mock_lssdp):
