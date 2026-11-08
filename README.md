@@ -16,6 +16,8 @@ Everything happens on your LAN, over the two TCP ports the hardware already spea
 | `binary_sensor` Audio | whether sound is actually coming out of the speakers |
 | Diagnostics | a redacted dump for bug reports |
 
+If the hub gets a new IP address and discovery does not catch it, change it with **Settings → Devices & Services → LibreSync → ⋮ → Reconfigure**, without removing the hub. When the hub drops off the network and when it comes back, one line is logged at info level.
+
 It is **push-driven**. The hub announces volume, source, transport and metadata as they happen, so the interface follows within a second or so. A slow poll covers the two properties nothing announces.
 
 ## Installing
