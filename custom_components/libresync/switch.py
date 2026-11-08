@@ -26,7 +26,6 @@ SWITCHES: tuple[LibreSyncSwitchDescription, ...] = (
     LibreSyncSwitchDescription(
         key="power",
         translation_key="power",
-        icon="mdi:power",
         value=lambda state: state.power,
         # The client reads the current state before acting, because `02 0f` is a
         # toggle that ignores its data byte. The vendor's own app skips that

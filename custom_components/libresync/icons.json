@@ -1,0 +1,28 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "audio": {
+        "default": "mdi:volume-high",
+        "state": {
+          "off": "mdi:volume-off"
+        }
+      }
+    },
+    "select": {
+      "eq_preset": {
+        "default": "mdi:equalizer"
+      }
+    },
+    "switch": {
+      "manual_eq": {
+        "default": "mdi:tune-vertical"
+      },
+      "power": {
+        "default": "mdi:power"
+      },
+      "room_correction": {
+        "default": "mdi:home-sound-in"
+      }
+    }
+  }
+}
