@@ -8,21 +8,39 @@ a slow poll of its own for the two properties nothing announces, and that is a
 safety net rather than the mechanism.
 """
 
+import asyncio
 import logging
 from collections.abc import Callable
 
-from aiolibresync import DeviceState, LibreSyncClient, NotConnectedError
+from aiolibresync import (
+    DeviceState,
+    LibreSyncClient,
+    LssdpInfo,
+    NotConnectedError,
+    async_query_lssdp,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONNECT_TIMEOUT, DOMAIN, MANUFACTURER, PLATFORMS
+from .const import CONNECT_TIMEOUT, DOMAIN, MANUFACTURER, PLATFORMS, UNSUPPORTED_MODULES
 
 _LOGGER = logging.getLogger(__name__)
 
 type LibreSyncConfigEntry = ConfigEntry[LibreSyncClient]
+
+
+def unsupported_module(info: LssdpInfo | None) -> str | None:
+    """The module LSSDP named, if this version cannot drive it.
+
+    A hub that did not answer on LSSDP is not refused: None means unknown, and
+    the original Stereo Hub answers every time.
+    """
+    if info is not None and info.module in UNSUPPORTED_MODULES:
+        return info.module
+    return None
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) -> bool:
@@ -34,15 +52,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     set up, a later disconnection is not a setup failure: the entities go
     unavailable and the client reconnects on its own.
     """
-    client = LibreSyncClient(entry.data[CONF_HOST])
+    host = entry.data[CONF_HOST]
+    client = LibreSyncClient(host)
+    # The module is asked alongside the connection, so a hub that is down waits
+    # no longer. An LS10 hub, which this version cannot drive, fails setup with
+    # that reason instead of retrying for ever, even when it was added by an
+    # older version or through discovery before this check existed.
     try:
-        await client.async_connect(timeout=CONNECT_TIMEOUT)
-    except NotConnectedError as err:
+        connected, info = await asyncio.gather(
+            client.async_connect(timeout=CONNECT_TIMEOUT),
+            async_query_lssdp(host),
+            return_exceptions=True,
+        )
+    except asyncio.CancelledError:
+        # The connection may have opened while the query was still pending.
+        await client.async_disconnect()
+        raise
+    if isinstance(info, BaseException):
+        await client.async_disconnect()
+        raise info
+    if (module := unsupported_module(info)) is not None:
+        await client.async_disconnect()
+        raise ConfigEntryError(
+            translation_domain=DOMAIN,
+            translation_key="unsupported_hub",
+            translation_placeholders={"host": host, "module": module},
+        )
+    if isinstance(connected, NotConnectedError):
         raise ConfigEntryNotReady(
             translation_domain=DOMAIN,
             translation_key="cannot_connect",
-            translation_placeholders={"host": entry.data[CONF_HOST]},
-        ) from err
+            translation_placeholders={"host": host},
+        ) from connected
+    if isinstance(connected, BaseException):
+        raise connected
 
     # Through the entry rather than in `async_unload_entry`: Home Assistant runs
     # these after the platforms have unloaded.

@@ -6,6 +6,7 @@ from dataclasses import replace
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from aiolibresync import LssdpInfo
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
 from homeassistant.data_entry_flow import FlowResultType
@@ -306,4 +307,52 @@ async def test_a_new_address_that_answers_as_another_hub_is_refused(hass, config
         )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "unique_id_mismatch"
+    assert config_entry.data[CONF_HOST] == HOST
+
+
+LS10 = LssdpInfo(module="LS10", model="Stereo Hub HT", firmware="C4A", media_port=7777)
+
+
+async def test_an_ls10_hub_typed_by_hand_is_turned_away_with_the_reason(hass, mock_lssdp):
+    mock_lssdp.return_value = LS10
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    with _probe(None):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: HOST}
+        )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "unsupported_hub"
+    assert result["description_placeholders"] == {"module": "LS10"}
+
+
+async def test_a_discovered_ls10_hub_is_turned_away(hass, mock_lssdp):
+    mock_lssdp.return_value = LS10
+    with _probe(FOUND):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "ssdp"}, data=SSDP_INFO
+        )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "unsupported_hub"
+
+
+async def test_a_discovered_hub_silent_on_lssdp_is_still_offered(hass, mock_lssdp):
+    mock_lssdp.return_value = None
+    with _probe(FOUND):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": "ssdp"}, data=SSDP_INFO
+        )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
+
+
+async def test_a_new_address_that_is_an_ls10_hub_is_turned_away(hass, config_entry, mock_lssdp):
+    config_entry.add_to_hass(hass)
+    result = await config_entry.start_reconfigure_flow(hass)
+    mock_lssdp.return_value = LS10
+    with _probe(replace(FOUND, host=NEW_HOST)):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: NEW_HOST}
+        )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "unsupported_hub"
     assert config_entry.data[CONF_HOST] == HOST

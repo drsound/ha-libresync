@@ -25,3 +25,8 @@ DEFAULT_NAME: Final = "LibreSync hub"
 #: Assistant. On the LAN they are up in about 0.05 s; this is for a hub that is
 #: still booting or a network that is having a bad moment.
 CONNECT_TIMEOUT: Final = 10.0
+
+#: Libre modules this version cannot drive: their port 7777 does not accept a
+#: plaintext session (mutual TLS on the Surround Hub, a reset on the Stereo Hub
+#: HT). LSSDP names the module. The 0.3 pre-releases run them on 50006 alone.
+UNSUPPORTED_MODULES: Final = frozenset({"LS10"})

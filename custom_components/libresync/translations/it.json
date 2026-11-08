@@ -5,7 +5,8 @@
       "already_in_progress": "Il flusso di configurazione è già in corso",
       "cannot_connect": "Impossibile connettersi",
       "reconfigure_successful": "La riconfigurazione è stata completata",
-      "unique_id_mismatch": "L'hub a questo indirizzo non è quello con cui è stata configurata questa voce. Per aggiungerlo, configuralo come nuovo hub."
+      "unique_id_mismatch": "L'hub a questo indirizzo non è quello con cui è stata configurata questa voce. Per aggiungerlo, configuralo come nuovo hub.",
+      "unsupported_hub": "Questo hub è basato sul modulo Libre più recente {module}, come lo Stereo Hub HT e il Surround Hub, che questa versione non supporta. Le pre-release di ha-libresync gestiscono questi hub in parte: in HACS apri LibreSync, scegli Riscarica e seleziona l'ultima pre-release."
     },
     "error": {
       "cannot_connect": "Impossibile connettersi",
@@ -93,6 +94,9 @@
     },
     "not_connected": {
       "message": "L'hub non è connesso, quindi il comando non è stato inviato."
+    },
+    "unsupported_hub": {
+      "message": "L'hub all'indirizzo {host} è basato sul modulo Libre più recente {module}, che questa versione non supporta. Le pre-release di ha-libresync gestiscono questi hub in parte."
     }
   }
 }

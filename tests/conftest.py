@@ -1,9 +1,17 @@
 """Fixtures shared by every test: a client that never opens a socket."""
 
-from unittest.mock import MagicMock, create_autospec
+from collections.abc import Iterator
+from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 
 import pytest
-from aiolibresync import DeviceState, DiscoveredDevice, LibreSyncClient, PlayState, Source
+from aiolibresync import (
+    DeviceState,
+    DiscoveredDevice,
+    LibreSyncClient,
+    LssdpInfo,
+    PlayState,
+    Source,
+)
 from homeassistant.const import CONF_HOST
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -54,6 +62,26 @@ FOUND = DiscoveredDevice(
 #: Reachable, controllable, and unidentifiable: what `async_probe` returns while
 #: `LibreDmr` is not running. Observed on real hardware, not invented.
 FOUND_WITHOUT_UDN = DiscoveredDevice(host=HOST, udn=None)
+
+
+#: What the original Stereo Hub answers on LSSDP: the reply this hub sent on
+#: 2026-10-23, reduced to the fields the integration reads.
+LS9 = LssdpInfo(module="LS9", model="Stereo Hub", firmware="p15262.515.0", media_port=7777)
+
+
+@pytest.fixture(autouse=True)
+def mock_lssdp() -> Iterator[AsyncMock]:
+    """LSSDP, answered as the original Stereo Hub answers it.
+
+    Patched where setup and the config flow look it up. A test that wants an
+    LS10 hub, or no answer, changes the return value.
+    """
+    lssdp = AsyncMock(return_value=LS9)
+    with (
+        patch("custom_components.libresync.async_query_lssdp", lssdp),
+        patch("custom_components.libresync.config_flow.async_query_lssdp", lssdp),
+    ):
+        yield lssdp
 
 
 @pytest.fixture(autouse=True)

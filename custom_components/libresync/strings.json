@@ -5,7 +5,8 @@
       "already_in_progress": "Configuration flow is already in progress",
       "cannot_connect": "Failed to connect",
       "reconfigure_successful": "Re-configuration was successful",
-      "unique_id_mismatch": "The hub at this address is not the one this entry was set up with. To add it, set it up as a new hub."
+      "unique_id_mismatch": "The hub at this address is not the one this entry was set up with. To add it, set it up as a new hub.",
+      "unsupported_hub": "This hub is built on Libre's newer {module} module, like the Stereo Hub HT and the Surround Hub, which this version does not support. The ha-libresync pre-releases run these hubs in part: in HACS, open LibreSync, choose Redownload and pick the latest pre-release."
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -93,6 +94,9 @@
     },
     "not_connected": {
       "message": "The hub is not connected, so the command was not sent."
+    },
+    "unsupported_hub": {
+      "message": "The hub at {host} is built on Libre's newer {module} module, which this version does not support. The ha-libresync pre-releases run these hubs in part."
     }
   }
 }

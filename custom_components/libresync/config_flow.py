@@ -5,11 +5,12 @@ device description on port 38400. A hub whose UPnP service does not answer
 cannot be added, and the error says how to bring it back: restarting the hub.
 """
 
+import asyncio
 from typing import Any
 from urllib.parse import urlparse
 
 import voluptuous as vol
-from aiolibresync import DiscoveredDevice, async_probe, async_probe_control
+from aiolibresync import DiscoveredDevice, async_probe, async_probe_control, async_query_lssdp
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST
 from homeassistant.helpers.selector import TextSelector
@@ -19,6 +20,7 @@ from homeassistant.helpers.service_info.ssdp import (
     SsdpServiceInfo,
 )
 
+from . import unsupported_module
 from .const import DEFAULT_NAME, DOMAIN
 
 STEP_USER_SCHEMA = vol.Schema({vol.Required(CONF_HOST): TextSelector()})
@@ -37,7 +39,9 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             host = user_input[CONF_HOST]
-            device, error = await _async_identify(host)
+            device, error, module = await _async_identify(host)
+            if module is not None:
+                return self._abort_unsupported(module)
             if error is not None:
                 errors["base"] = error
             else:
@@ -63,7 +67,9 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             host = user_input[CONF_HOST]
-            device, error = await _async_identify(host)
+            device, error, module = await _async_identify(host)
+            if module is not None:
+                return self._abort_unsupported(module)
             if error is not None:
                 errors["base"] = error
             else:
@@ -100,7 +106,10 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         # Generous matcher, strict probe. The description says what a host
         # claims to be; the connection to 50006, which sends nothing, says what
         # it is.
-        if not await async_probe_control(host):
+        reachable, info = await asyncio.gather(async_probe_control(host), async_query_lssdp(host))
+        if (module := unsupported_module(info)) is not None:
+            return self._abort_unsupported(module)
+        if not reachable:
             return self.async_abort(reason="cannot_connect")
 
         # The name comes from the description Home Assistant has already fetched.
@@ -109,6 +118,12 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         self.context["title_placeholders"] = {"name": self._discovered.name or DEFAULT_NAME}
         return await self.async_step_discovery_confirm()
+
+    def _abort_unsupported(self, module: str) -> ConfigFlowResult:
+        """Turn away a hub whose module this version cannot drive, saying why."""
+        return self.async_abort(
+            reason="unsupported_hub", description_placeholders={"module": module}
+        )
 
     async def async_step_discovery_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -124,16 +139,20 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
 
-async def _async_identify(host: str) -> tuple[DiscoveredDevice | None, str | None]:
-    """Probe a hub by address: the hub, or the error to show.
+async def _async_identify(
+    host: str,
+) -> tuple[DiscoveredDevice | None, str | None, str | None]:
+    """Probe a hub by address: the hub, the error to show, and an unsupported module.
 
-    A hub that is reachable and controllable but whose UPnP service does not
+    LSSDP is asked alongside the probe, so a wrong address waits no longer. A
+    hub that is reachable and controllable but whose UPnP service does not
     answer has nothing to identify it, and `no_identity` says how to bring the
     service back.
     """
-    device = await async_probe(host)
+    device, info = await asyncio.gather(async_probe(host), async_query_lssdp(host))
+    module = unsupported_module(info)
     if device is None:
-        return None, "cannot_connect"
+        return None, "cannot_connect", module
     if not device.udn:
-        return device, "no_identity"
-    return device, None
+        return device, "no_identity", module
+    return device, None, module

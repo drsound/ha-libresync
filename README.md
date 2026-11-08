@@ -48,7 +48,9 @@ Seeking, media browsing, speaker grouping and multiroom. Defining EQ filters —
 | --- | --- | --- |
 | Platin Stereo Hub | 1.52 | everything above, measured |
 
-That is the whole list so far. The same hub is sold as the System Audio, Buchardt and Econik Stereo Hubs and the Triangle Compact Stereo Hub, Mesanovic bundles Platin's with its monitors, and Platin and others make HT and Surround versions. The platform probably ships under other names too. They should work, but nobody has checked yet.
+That is the whole list so far. The same hub is sold as the System Audio, Buchardt and Econik Stereo Hubs and the Triangle Compact Stereo Hub, Mesanovic bundles Platin's with its monitors, and the platform probably ships under other names too. They should work, but nobody has checked yet.
+
+**The newer hubs, such as the Platin Stereo Hub HT and Surround Hub,** are built on Libre's LS10 module, whose port 7777 does not accept this version's connection. This stable version turns them away with a message saying so. The [pre-releases](https://github.com/drsound/ha-libresync/releases) run them on port 50006 alone (source, power, room correction): in HACS, open LibreSync, choose *Redownload* and pick the latest pre-release. Reports from owners are very welcome.
 
 **If you own one of them, please try it** and [open a device report](https://github.com/drsound/ha-libresync/issues/new?template=device_report.yml), whether it works or not. Attach the diagnostics: **Settings → Devices & Services → LibreSync → ⋮ → Download diagnostics**. It holds what is needed to fix a hub nobody here owns. It hides your hub's address, its factory code and the track you are playing, except inside the messages the integration could not understand: those are kept whole, because they are what a fix needs, so glance through the file before you post it.
 

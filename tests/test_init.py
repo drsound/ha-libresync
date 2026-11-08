@@ -1,8 +1,11 @@
 """Setting the entry up, and taking it down again."""
 
+import asyncio
 import logging
+from dataclasses import replace
 from unittest.mock import patch
 
+import pytest
 from aiolibresync import NotConnectedError
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
@@ -11,7 +14,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.libresync.const import CONNECT_TIMEOUT, DOMAIN
 
-from .conftest import FULL_STATE, HOST, SERIAL, UDN, push
+from .conftest import FULL_STATE, HOST, LS9, SERIAL, UDN, push
 
 
 async def test_setup_connects_and_unload_disconnects(hass, config_entry, mock_client):
@@ -162,3 +165,71 @@ async def test_an_outage_is_logged_once_when_it_starts_and_once_when_it_ends(
     assert all(
         r.levelno == logging.INFO for r in caplog.records if r.name == "custom_components.libresync"
     )
+
+
+async def _setup_with(hass, entry, client) -> None:
+    entry.add_to_hass(hass)
+    with patch("custom_components.libresync.LibreSyncClient", return_value=client):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+
+@pytest.mark.parametrize(
+    "connect_error", [NotConnectedError("reset"), None], ids=["fails", "connects"]
+)
+async def test_an_ls10_hub_fails_setup_instead_of_retrying(
+    hass, config_entry, mock_client, mock_lssdp, connect_error
+):
+    """Its 7777 never accepts this version's session, so retrying would go on
+    for ever. Refused whether or not the connection happened to open."""
+    mock_lssdp.return_value = replace(LS9, module="LS10")
+    mock_client.async_connect.side_effect = connect_error
+    await _setup_with(hass, config_entry, mock_client)
+
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+    assert "LS10" in config_entry.reason
+    assert "pre-release" in config_entry.reason
+    mock_client.async_disconnect.assert_awaited_once()
+
+
+async def test_a_hub_silent_on_lssdp_is_retried_as_before(
+    hass, config_entry, mock_client, mock_lssdp
+):
+    mock_lssdp.return_value = None
+    mock_client.async_connect.side_effect = NotConnectedError("no answer")
+    await _setup_with(hass, config_entry, mock_client)
+    assert config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+async def test_an_unexpected_lssdp_error_disconnects_and_fails(
+    hass, config_entry, mock_client, mock_lssdp
+):
+    mock_lssdp.side_effect = RuntimeError("boom")
+    await _setup_with(hass, config_entry, mock_client)
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+    mock_client.async_disconnect.assert_awaited_once()
+
+
+async def test_an_unexpected_connect_error_fails_setup(hass, config_entry, mock_client):
+    mock_client.async_connect.side_effect = RuntimeError("boom")
+    await _setup_with(hass, config_entry, mock_client)
+    assert config_entry.state is ConfigEntryState.SETUP_ERROR
+
+
+async def test_a_setup_cancelled_mid_query_disconnects(hass, config_entry, mock_client, mock_lssdp):
+    """The connection can open while LSSDP is still pending."""
+    pending = asyncio.Event()
+
+    async def never_answers(host: str) -> None:
+        pending.set()
+        await asyncio.Event().wait()
+
+    mock_lssdp.side_effect = never_answers
+    config_entry.add_to_hass(hass)
+    with patch("custom_components.libresync.LibreSyncClient", return_value=mock_client):
+        setup = hass.async_create_task(hass.config_entries.async_setup(config_entry.entry_id))
+        await pending.wait()
+        setup.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await setup
+    mock_client.async_disconnect.assert_awaited_once()
