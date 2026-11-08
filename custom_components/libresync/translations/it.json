@@ -3,7 +3,9 @@
     "abort": {
       "already_configured": "Il dispositivo è già configurato",
       "already_in_progress": "Il flusso di configurazione è già in corso",
-      "cannot_connect": "Impossibile connettersi"
+      "cannot_connect": "Impossibile connettersi",
+      "reconfigure_successful": "La riconfigurazione è stata completata",
+      "unique_id_mismatch": "L'hub a questo indirizzo non è quello con cui è stata configurata questa voce. Per aggiungerlo, configuralo come nuovo hub."
     },
     "error": {
       "cannot_connect": "Impossibile connettersi",
@@ -12,6 +14,14 @@
     "step": {
       "discovery_confirm": {
         "description": "Vuoi configurare {name}?"
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "Il nome host o l'indirizzo IP dell'hub, per esempio 192.168.1.50."
+        }
       },
       "user": {
         "data": {

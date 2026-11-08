@@ -261,3 +261,49 @@ async def test_an_ignored_hub_is_dropped_before_anything_is_sent_to_it(hass):
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
     probe.assert_not_awaited()
+
+
+NEW_HOST = "192.168.10.99"
+
+
+async def test_a_hub_can_be_given_a_new_address(hass, config_entry):
+    config_entry.add_to_hass(hass)
+    result = await config_entry.start_reconfigure_flow(hass)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+
+    with _probe(replace(FOUND, host=NEW_HOST)):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: NEW_HOST}
+        )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert dict(config_entry.data) == {CONF_HOST: NEW_HOST}
+
+
+@pytest.mark.parametrize(
+    ("found", "error"), [(None, "cannot_connect"), (FOUND_WITHOUT_UDN, "no_identity")]
+)
+async def test_a_new_address_that_is_not_a_hub_is_reported(hass, config_entry, found, error):
+    config_entry.add_to_hass(hass)
+    result = await config_entry.start_reconfigure_flow(hass)
+    with _probe(found):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: NEW_HOST}
+        )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": error}
+    assert config_entry.data[CONF_HOST] == HOST
+
+
+async def test_a_new_address_that_answers_as_another_hub_is_refused(hass, config_entry):
+    config_entry.add_to_hass(hass)
+    result = await config_entry.start_reconfigure_flow(hass)
+    other = replace(FOUND, host=NEW_HOST, udn="uuid:00000000-0000-0000-0000-000000000000")
+    with _probe(other):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: NEW_HOST}
+        )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "unique_id_mismatch"
+    assert config_entry.data[CONF_HOST] == HOST

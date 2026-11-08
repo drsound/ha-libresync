@@ -37,15 +37,11 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             host = user_input[CONF_HOST]
-            device = await async_probe(host)
-            if device is None:
-                errors["base"] = "cannot_connect"
-            elif not device.udn:
-                # Reachable and controllable, but its UPnP service does not
-                # answer, so nothing identifies it. The message says how to
-                # bring the service back.
-                errors["base"] = "no_identity"
+            device, error = await _async_identify(host)
+            if error is not None:
+                errors["base"] = error
             else:
+                assert device is not None and device.udn
                 await self.async_set_unique_id(device.udn, raise_on_progress=False)
                 self._abort_if_unique_id_configured(updates={CONF_HOST: host})
                 return self.async_create_entry(
@@ -56,6 +52,31 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
             # Typed as probatio since 2026.10, which 2026.8 does not ship; a
             # voluptuous schema is still accepted.
             data_schema=STEP_USER_SCHEMA,  # type: ignore[arg-type]
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """A new address for a hub already added. It must answer as the same hub."""
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            host = user_input[CONF_HOST]
+            device, error = await _async_identify(host)
+            if error is not None:
+                errors["base"] = error
+            else:
+                assert device is not None and device.udn
+                await self.async_set_unique_id(device.udn)
+                self._abort_if_unique_id_mismatch()
+                return self.async_update_reload_and_abort(entry, data_updates={CONF_HOST: host})
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_USER_SCHEMA,  # type: ignore[arg-type]
+                user_input or entry.data,
+            ),
             errors=errors,
         )
 
@@ -101,3 +122,18 @@ class LibreSyncConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="discovery_confirm", description_placeholders={"name": name}
         )
+
+
+async def _async_identify(host: str) -> tuple[DiscoveredDevice | None, str | None]:
+    """Probe a hub by address: the hub, or the error to show.
+
+    A hub that is reachable and controllable but whose UPnP service does not
+    answer has nothing to identify it, and `no_identity` says how to bring the
+    service back.
+    """
+    device = await async_probe(host)
+    if device is None:
+        return None, "cannot_connect"
+    if not device.udn:
+        return device, "no_identity"
+    return device, None

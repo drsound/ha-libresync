@@ -3,7 +3,9 @@
     "abort": {
       "already_configured": "Device is already configured",
       "already_in_progress": "Configuration flow is already in progress",
-      "cannot_connect": "Failed to connect"
+      "cannot_connect": "Failed to connect",
+      "reconfigure_successful": "Re-configuration was successful",
+      "unique_id_mismatch": "The hub at this address is not the one this entry was set up with. To add it, set it up as a new hub."
     },
     "error": {
       "cannot_connect": "Failed to connect",
@@ -12,6 +14,14 @@
     "step": {
       "discovery_confirm": {
         "description": "Do you want to set up {name}?"
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "The hostname or IP address of the hub, for example 192.168.1.50."
+        }
       },
       "user": {
         "data": {
