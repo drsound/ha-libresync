@@ -38,3 +38,17 @@ async def test_it_disagrees_with_the_transport_when_the_transport_lies(
     push(mock_client, FULL_STATE.evolve(play_state=PlayState.PLAYING, audio_state=PlayState.IDLE))
     await hass.async_block_till_done()
     assert hass.states.get(ENTITY).state == "off"
+
+
+async def test_a_push_that_moves_only_the_position_is_not_written(hass, config_entry, mock_client):
+    """The hub pushes the position every second while playing; the sensor does
+    not show it, so it must not write a state that did not move."""
+    await setup(hass, config_entry, mock_client)
+    written = hass.states.get(ENTITY).last_reported
+    push(mock_client, FULL_STATE.evolve(position_ms=(FULL_STATE.position_ms or 0) + 1000))
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).last_reported == written
+
+    push(mock_client, FULL_STATE.evolve(available=False))
+    await hass.async_block_till_done()
+    assert hass.states.get(ENTITY).state == "unavailable"

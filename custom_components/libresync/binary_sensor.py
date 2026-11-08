@@ -6,7 +6,7 @@ automation act on it, and lets someone see where the player's state came from
 when it looks wrong.
 """
 
-from aiolibresync import LibreSyncClient, PlayState
+from aiolibresync import DeviceState, LibreSyncClient, PlayState
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
@@ -36,6 +36,9 @@ class LibreSyncAudioActive(LibreSyncEntity, BinarySensorEntity):
     def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
         super().__init__(client, unique_id_base, name)
         self._attr_unique_id = f"{unique_id_base}_audio"
+
+    def _shown(self, state: DeviceState) -> object:
+        return state.audio_state
 
     @property
     def is_on(self) -> bool | None:

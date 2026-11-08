@@ -11,7 +11,7 @@ is the current one, so the select tells the truth without offering editing it
 cannot do.
 """
 
-from aiolibresync import LibreSyncClient
+from aiolibresync import DeviceState, LibreSyncClient
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
@@ -43,6 +43,9 @@ class LibreSyncEqPreset(LibreSyncEntity, SelectEntity):
     def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
         super().__init__(client, unique_id_base, name)
         self._attr_unique_id = f"{unique_id_base}_eq_preset"
+
+    def _shown(self, state: DeviceState) -> object:
+        return state.eq_preset
 
     @property
     def options(self) -> list[str]:

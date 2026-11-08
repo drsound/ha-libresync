@@ -78,6 +78,9 @@ class LibreSyncSwitch(LibreSyncEntity, SwitchEntity):
         self.entity_description = description
         self._attr_unique_id = f"{unique_id_base}_{description.key}"
 
+    def _shown(self, state: DeviceState) -> object:
+        return self.entity_description.value(state)
+
     @property
     def is_on(self) -> bool | None:
         """`None` means "not reported yet", and Home Assistant renders it unknown.

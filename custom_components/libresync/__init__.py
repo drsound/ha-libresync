@@ -67,7 +67,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     update_device = _device_updater(hass, device.id)
     entry.async_on_unload(client.subscribe(update_device))
     update_device(client.state)
-    entry.async_on_unload(client.subscribe(_availability_logger(entry.data[CONF_HOST])))
+    log_availability = _availability_logger(entry.data[CONF_HOST], client.state.available)
+    entry.async_on_unload(client.subscribe(log_availability))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -89,15 +90,13 @@ def _device_updater(hass: HomeAssistant, device_id: str) -> Callable[[DeviceStat
     return update
 
 
-def _availability_logger(host: str) -> Callable[[DeviceState], None]:
+def _availability_logger(host: str, available: bool) -> Callable[[DeviceState], None]:
     """Log once when the hub becomes unavailable and once when it is back.
 
-    Here rather than in the entities, which would each log the same drop. Setup
-    has just seen both ports answer, so the hub starts out available. The
+    Here rather than in the entities, which would each log the same drop. The
     client reconnects for ever without logging above debug, so this is the only
     trace of an outage at the default level.
     """
-    available = True
 
     @callback
     def log(state: DeviceState) -> None:

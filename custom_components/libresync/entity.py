@@ -51,6 +51,8 @@ class LibreSyncEntity(Entity):
 
     def __init__(self, client: LibreSyncClient, unique_id_base: str, name: str) -> None:
         self._client = client
+        # Availability and what the entity shows, as last written.
+        self._written_shown: tuple[bool, object] | None = None
         # No model here: setup keeps it on the device as it arrives, and a
         # None here, before it has, would overwrite it.
         self._attr_device_info = DeviceInfo(
@@ -83,13 +85,27 @@ class LibreSyncEntity(Entity):
         """
         return self.snapshot.available
 
+    def _shown(self, state: DeviceState) -> object:
+        """What the entity shows of the state; the whole state unless narrowed.
+
+        The state is written only when this or the availability changes. The hub
+        pushes the playback position every second while playing, and an entity
+        that does not show it has no reason to write a state that did not move.
+        """
+        return state
+
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
+        self._written_shown = (self.snapshot.available, self._shown(self.snapshot))
         self.async_on_remove(self._client.subscribe(self._handle_state))
 
     @callback
     def _handle_state(self, state: DeviceState) -> None:
         """The client's callback. Synchronous, and called from the event loop."""
+        shown = (state.available, self._shown(state))
+        if shown == self._written_shown:
+            return
+        self._written_shown = shown
         self.async_write_ha_state()
 
     @handle_errors
