@@ -1,5 +1,6 @@
 """Setting the entry up, and taking it down again."""
 
+import logging
 from unittest.mock import patch
 
 from aiolibresync import NotConnectedError
@@ -138,3 +139,26 @@ async def test_the_device_takes_the_name_the_hub_announced(hass, mock_client):
     assert device is not None
     assert device.name == "Living room"
     assert hass.states.get("media_player.living_room") is not None
+
+
+async def test_an_outage_is_logged_once_when_it_starts_and_once_when_it_ends(
+    hass, config_entry, mock_client, caplog
+):
+    await _setup(hass, config_entry, mock_client)
+    caplog.set_level(logging.INFO, logger="custom_components.libresync")
+    caplog.clear()
+
+    down = FULL_STATE.evolve(available=False)
+    for state in (down, down.evolve(volume=10), down):
+        push(mock_client, state)
+    for state in (FULL_STATE, FULL_STATE.evolve(volume=10)):
+        push(mock_client, state)
+    await hass.async_block_till_done()
+
+    assert [r.getMessage() for r in caplog.records if r.name == "custom_components.libresync"] == [
+        f"The hub at {HOST} is unavailable",
+        f"The hub at {HOST} is back online",
+    ]
+    assert all(
+        r.levelno == logging.INFO for r in caplog.records if r.name == "custom_components.libresync"
+    )

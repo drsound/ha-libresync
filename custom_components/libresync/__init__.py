@@ -8,6 +8,7 @@ a slow poll of its own for the two properties nothing announces, and that is a
 safety net rather than the mechanism.
 """
 
+import logging
 from collections.abc import Callable
 
 from aiolibresync import DeviceState, LibreSyncClient, NotConnectedError
@@ -18,6 +19,8 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
 from .const import CONNECT_TIMEOUT, DOMAIN, MANUFACTURER, PLATFORMS
+
+_LOGGER = logging.getLogger(__name__)
 
 type LibreSyncConfigEntry = ConfigEntry[LibreSyncClient]
 
@@ -64,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) ->
     update_device = _device_updater(hass, device.id)
     entry.async_on_unload(client.subscribe(update_device))
     update_device(client.state)
+    entry.async_on_unload(client.subscribe(_availability_logger(entry.data[CONF_HOST])))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
@@ -83,6 +87,30 @@ def _device_updater(hass: HomeAssistant, device_id: str) -> Callable[[DeviceStat
         dr.async_get(hass).async_update_device(device_id, model=state.model)
 
     return update
+
+
+def _availability_logger(host: str) -> Callable[[DeviceState], None]:
+    """Log once when the hub becomes unavailable and once when it is back.
+
+    Here rather than in the entities, which would each log the same drop. Setup
+    has just seen both ports answer, so the hub starts out available. The
+    client reconnects for ever without logging above debug, so this is the only
+    trace of an outage at the default level.
+    """
+    available = True
+
+    @callback
+    def log(state: DeviceState) -> None:
+        nonlocal available
+        if state.available == available:
+            return
+        available = state.available
+        if available:
+            _LOGGER.info("The hub at %s is back online", host)
+        else:
+            _LOGGER.info("The hub at %s is unavailable", host)
+
+    return log
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: LibreSyncConfigEntry) -> bool:
