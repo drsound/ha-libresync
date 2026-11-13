@@ -90,6 +90,18 @@ async def test_a_name_that_does_not_resolve_is_none(monkeypatch):
     assert await lssdp.async_query_lssdp("nowhere.invalid") is None
 
 
+async def test_a_slow_resolver_does_not_outlast_the_timeout(monkeypatch):
+    loop = asyncio.get_running_loop()
+
+    async def hang(*_args, **_kwargs):
+        await asyncio.Event().wait()
+
+    monkeypatch.setattr(loop, "getaddrinfo", hang)
+    started = loop.time()
+    assert await lssdp.async_query_lssdp("hub.invalid", timeout=0.2) is None
+    assert loop.time() - started < 1.0
+
+
 async def test_no_socket_is_none(monkeypatch):
     async def refuse(*_args, **_kwargs):
         raise OSError("no socket")
